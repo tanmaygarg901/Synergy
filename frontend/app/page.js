@@ -28,7 +28,8 @@ export default function Home() {
   const sessionIdRef = useRef(
     `session_${Date.now().toString(36)}_${Math.random().toString(16).slice(2)}`
   );
-  const [matchState, setMatchState] = useState({
+  const actionProviderRef = useRef(null);
+  const createMatchState = () => ({
     status: 'idle',
     profile: null,
     matches: [],
@@ -36,6 +37,8 @@ export default function Home() {
     userId: null,
     error: null,
   });
+  const [matchState, setMatchState] = useState(createMatchState);
+  const [composerSending, setComposerSending] = useState(false);
 
   const handlePromptClick = (prompt) => {
     setInputValue(prompt);
@@ -128,11 +131,12 @@ export default function Home() {
   };
 
   const ChatActionProvider = class extends ActionProvider {
-    constructor(createChatBotMessage, setStateFunc) {
-      super(createChatBotMessage, setStateFunc);
+    constructor(createChatBotMessage, setStateFunc, createClientMessage, stateRef) {
+      super(createChatBotMessage, setStateFunc, createClientMessage, stateRef);
+      actionProviderRef.current = this;
     }
 
-    handleUserMessage = async (message) => {
+    handleUserMessage = async (message, options = {}) => {
       const trimmed = message.trim();
       if (!trimmed) {
         const warn = this.createChatBotMessage("I didn't catch that—could you share a bit more?");
@@ -142,6 +146,24 @@ export default function Home() {
         }));
         return;
       }
+
+      if (options.addClientMessage && this.createClientMessage) {
+        const clientMessage = this.createClientMessage(trimmed);
+        this.setState((prev) => ({
+          ...prev,
+          messages: [...prev.messages, clientMessage],
+        }));
+        if (this.stateRef && Array.isArray(this.stateRef.messages)) {
+          this.stateRef.messages = [...this.stateRef.messages, clientMessage];
+        }
+      }
+
+      setMatchState((prev) => {
+        if (prev.status === 'idle' || prev.status === 'loading') {
+          return prev;
+        }
+        return createMatchState();
+      });
 
       try {
         const response = await fetch(`${API_URL}/chat`, {
@@ -169,7 +191,14 @@ export default function Home() {
         }));
 
         if (data.is_trigger) {
-          const conversation = [...this.stateRef.messages, { type: 'bot', message: data.response }];
+          const existing = (this.stateRef && this.stateRef.messages) || [];
+          const hasUserInHistory = existing.some(
+            (item) => item?.type === 'user' && item?.message === trimmed
+          );
+          const history = hasUserInHistory
+            ? [...existing]
+            : [...existing, { type: 'user', message: trimmed }];
+          const conversation = [...history, { type: 'bot', message: data.response }];
           const transcript = buildTranscript(conversation);
           await fetchMatchData(transcript);
         }
@@ -186,6 +215,59 @@ export default function Home() {
         }));
       }
     };
+  };
+
+  const deliverToChatbot = async (message, options, attempt = 0) => {
+    const provider = actionProviderRef.current;
+    if (provider) {
+      await provider.handleUserMessage(message, options);
+      return true;
+    }
+
+    if (attempt >= 30) {
+      console.warn('Chatbot provider not ready after waiting.');
+      return false;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    return deliverToChatbot(message, options, attempt + 1);
+  };
+
+  const handleComposerSubmit = async (event) => {
+    event.preventDefault();
+    const trimmed = inputValue.trim();
+    if (!trimmed || composerSending) {
+      return;
+    }
+
+    setComposerSending(true);
+    try {
+      const sent = await deliverToChatbot(trimmed, { addClientMessage: true });
+      if (sent) {
+        setInputValue('');
+      } else {
+        setMatchState({
+          status: 'error',
+          profile: null,
+          matches: [],
+          suggestions: [],
+          userId: null,
+          error: 'Synergy is still initializing. Try again in a moment.',
+        });
+      }
+    } catch (error) {
+      console.error('composer submission error:', error);
+      setMatchState({
+        status: 'error',
+        profile: null,
+        matches: [],
+        suggestions: [],
+        userId: null,
+        error: 'Unable to send message. Please try again.',
+      });
+    } finally {
+      setComposerSending(false);
+    }
   };
 
   return (
@@ -236,7 +318,7 @@ export default function Home() {
                 </p>
               </div>
               <form
-                onSubmit={(event) => event.preventDefault()}
+                onSubmit={handleComposerSubmit}
                 className="space-y-6 opacity-0 animate-fade-up"
                 style={{ animationDelay: '220ms' }}
               >
@@ -250,7 +332,7 @@ export default function Home() {
                   <input
                     type="text"
                     ref={inputRef}
-                    placeholder="Describe your dream. I’ll match you with someone who can build it with you."
+                    placeholder="Describe your dream co-founder. I’ll introduce you."
                     onFocus={() => setFocused(true)}
                     onBlur={() => setFocused(false)}
                     value={inputValue}
@@ -259,11 +341,16 @@ export default function Home() {
                     aria-label="Describe your dream co-founder"
                   />
                   <button
-                    type="button"
+                    type="submit"
                     aria-label="Start matching"
-                    className="relative flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-[#706CFF] via-[#5E82FF] to-[#46D8FF] text-white shadow-[0_24px_40px_-24px_rgba(94,136,255,0.8)] transition duration-200 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#48D6FF]/80 focus-visible:ring-offset-2 focus-visible:ring-offset-[#05060D]"
+                    disabled={composerSending || !inputValue.trim()}
+                    className="relative flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-[#706CFF] via-[#5E82FF] to-[#46D8FF] text-white shadow-[0_24px_40px_-24px_rgba(94,136,255,0.8)] transition duration-200 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#48D6FF]/80 focus-visible:ring-offset-2 focus-visible:ring-offset-[#05060D] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
                   >
-                    <ArrowUpRight className="h-5 w-5" aria-hidden="true" />
+                    {composerSending ? (
+                      <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <ArrowUpRight className="h-5 w-5" aria-hidden="true" />
+                    )}
                   </button>
                 </div>
                 <div className="flex flex-wrap gap-3">
