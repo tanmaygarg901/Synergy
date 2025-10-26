@@ -870,6 +870,187 @@ collaborators.extend([
         "bio": "Serial entrepreneur. Exited a healthtech startup. Seeking co-founder.",
         "availability": "Available"
     },
+    # === Auto-generated profiles ===
+    {
+        "id": "collab_93",
+        "name": "Quinn Zhao",
+        "role": "Data Scientist",
+        "skills": ["PyTorch", "Computer Vision", "CNNs", "Transfer Learning"],
+        "interests": ["Food Tech", "Data Tools"],
+        "bio": "MLOps engineer making ML systems production-ready.",
+        "availability": "Available"
+    },
+    {
+        "id": "collab_94",
+        "name": "Felix Green",
+        "role": "Data Scientist",
+        "skills": ["PyTorch", "Computer Vision", "CNNs", "Transfer Learning"],
+        "interests": ["AI/ML", "Privacy"],
+        "bio": "ML engineer deploying models that drive business value.",
+        "availability": "Available"
+    },
+    {
+        "id": "collab_95",
+        "name": "Carlos Yang",
+        "role": "Designer",
+        "skills": ["Framer", "Motion Design", "Micro-interactions", "CSS"],
+        "interests": ["Diversity", "Privacy", "Climate Tech"],
+        "bio": "Design systems architect building scalable component libraries.",
+        "availability": "Available"
+    },
+    {
+        "id": "collab_96",
+        "name": "Sofia Johnson",
+        "role": "Data Scientist",
+        "skills": ["R", "Statistics", "Hypothesis Testing", "Causal Inference"],
+        "interests": ["Developer Tools", "Music"],
+        "bio": "MLOps engineer making ML systems production-ready.",
+        "availability": "Part-time"
+    },
+    {
+        "id": "collab_97",
+        "name": "Winston Nelson",
+        "role": "Sales & Business Development",
+        "skills": ["Sales Ops", "CRM", "Salesforce", "Pipeline Management"],
+        "interests": ["Workflow Automation", "Nonprofit", "Travel"],
+        "bio": "SDR turned AE with 8 years of quota crushing.",
+        "availability": "Available"
+    },
+    {
+        "id": "collab_98",
+        "name": "Viktor Usman",
+        "role": "Data Scientist",
+        "skills": ["Python", "Pandas", "NumPy", "Scikit-learn", "Jupyter"],
+        "interests": ["Drones", "Public Health", "Food Tech"],
+        "bio": "MLOps engineer making ML systems production-ready.",
+        "availability": "Advisory"
+    },
+    {
+        "id": "collab_99",
+        "name": "Lucia Santos",
+        "role": "Designer",
+        "skills": ["User Research", "Journey Mapping", "Personas", "A/B Testing"],
+        "interests": ["Wellness", "Robotics", "Diversity"],
+        "bio": "Brand designer crafting memorable identities.",
+        "availability": "Available"
+    },
+    {
+        "id": "collab_100",
+        "name": "Gabriel Yamamoto",
+        "role": "Software Engineer",
+        "skills": ["Go", "gRPC", "Kubernetes", "Docker"],
+        "interests": ["Democracy", "Legal Tech", "Food Tech"],
+        "bio": "Full-stack developer with 6 years building scalable web applications.",
+        "availability": "Part-time"
+    },
+    {
+        "id": "collab_101",
+        "name": "Nina Zhao",
+        "role": "Sales & Business Development",
+        "skills": ["Partnerships", "Channel Sales", "Alliances", "Co-selling"],
+        "interests": ["Economic Justice", "Security"],
+        "bio": "Revenue leader who's built teams from 0 to 100 reps.",
+        "availability": "Available"
+    },
+    {
+        "id": "collab_102",
+        "name": "Rosa Johnson",
+        "role": "Sales & Business Development",
+        "skills": ["Enterprise Sales", "MEDDIC", "Solution Selling", "Demos"],
+        "interests": ["Agriculture", "Mental Health", "Collaboration"],
+        "bio": "Inbound sales specialist converting high-intent leads.",
+        "availability": "Available"
+    },
+    {
+        "id": "collab_103",
+        "name": "Xander Ramos",
+        "role": "Designer",
+        "skills": ["Adobe XD", "Illustration", "Brand Identity", "Typography"],
+        "interests": ["E-commerce", "Drones"],
+        "bio": "Visual designer with an eye for detail and storytelling.",
+        "availability": "Part-time"
+    },
+    {
+        "id": "collab_104",
+        "name": "Felix Ramos",
+        "role": "Marketing & Growth",
+        "skills": ["Content Marketing", "SEO", "Copywriting", "Blogging"],
+        "interests": ["Developer Tools", "Music", "FinTech"],
+        "bio": "Brand marketer crafting memorable stories that resonate.",
+        "availability": "Part-time"
+    },
+    {
+        "id": "collab_105",
+        "name": "Xiao Berg",
+        "role": "Designer",
+        "skills": ["Sketch", "InVision", "Wireframing", "UI Animation"],
+        "interests": ["Creator Economy", "Workflow Automation", "Quantum Computing"],
+        "bio": "Design lead who's mentored 15 designers.",
+        "availability": "Contract"
+    },
+    {
+        "id": "collab_106",
+        "name": "Wei Ibrahim",
+        "role": "Sales & Business Development",
+        "skills": ["Sales Enablement", "Training", "Playbooks", "Documentation"],
+        "interests": ["Quantum Computing", "Workflow Automation", "Policy"],
+        "bio": "Enterprise AE who's closed 3 six-figure deals.",
+        "availability": "Available"
+    },
+    {
+        "id": "collab_107",
+        "name": "Yasmin Abbas",
+        "role": "Sales & Business Development",
+        "skills": ["Outbound", "Cold Email", "Prospecting", "Lead Generation"],
+        "interests": ["E-commerce", "Supply Chain", "Open Source"],
+        "bio": "Revenue leader who's built teams from 0 to 5 reps.",
+        "availability": "Available"
+    },
+    {
+        "id": "collab_108",
+        "name": "Jorge Lopez",
+        "role": "Product Manager",
+        "skills": ["A/B Testing", "Analytics", "SQL", "Data-Driven Decisions"],
+        "interests": ["Mental Health", "Analytics", "FinTech"],
+        "bio": "AI/ML PM translating research into product value.",
+        "availability": "Available"
+    },
+    {
+        "id": "collab_109",
+        "name": "Rosa Qureshi",
+        "role": "Designer",
+        "skills": ["Design Ops", "Documentation", "Design Tokens", "Collaboration"],
+        "interests": ["Climate Tech", "B2B SaaS"],
+        "bio": "Product designer passionate about creating intuitive user experiences.",
+        "availability": "Advisory"
+    },
+    {
+        "id": "collab_110",
+        "name": "Winston Smith",
+        "role": "Designer",
+        "skills": ["User Research", "Journey Mapping", "Personas", "A/B Testing"],
+        "interests": ["Education", "Gaming", "Privacy"],
+        "bio": "Visual designer with an eye for detail and storytelling.",
+        "availability": "Available"
+    },
+    {
+        "id": "collab_111",
+        "name": "Vera Anderson",
+        "role": "Designer",
+        "skills": ["3D Design", "Blender", "3D Modeling", "Rendering"],
+        "interests": ["AI/ML", "Social Media", "Policy"],
+        "bio": "UX researcher who loves uncovering user needs through data.",
+        "availability": "Contract"
+    },
+    {
+        "id": "collab_112",
+        "name": "Isla Quinn",
+        "role": "Designer",
+        "skills": ["3D Design", "Blender", "3D Modeling", "Rendering"],
+        "interests": ["EdTech", "Gaming", "Diversity"],
+        "bio": "UX researcher who loves uncovering user needs through data.",
+        "availability": "Available"
+    },
 ])
 
 
