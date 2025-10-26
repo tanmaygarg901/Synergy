@@ -1,0 +1,116 @@
+{
+  "scenarios": [
+    {
+      "id": "scenario_1",
+      "title": "Tech Founder Seeking Engineer",
+      "transcript": [
+        "User: Hi, I'm Alice",
+        "Assistant: Hi Alice! What kinds of projects or products are you building?",
+        "User: I work on product strategy for a health tech startup",
+        "Assistant: Nice! What core skills do you bring to the table?",
+        "User: I have skills in product management, UX design, and Python",
+        "Assistant: Awesome mix. What areas are you most excited about right now?",
+        "User: I'm interested in HealthTech and AI",
+        "Assistant: Got it. What kind of collaborator are you hoping to find?",
+        "User: I'm looking for a Software Engineer",
+        "Assistant: Great, I have a clear picture!"
+      ],
+      "expected_matches": [
+        "Alex Chen",
+        "Sam Rivera"
+      ],
+      "key_features": [
+        "Full discovery flow ending with the trigger phrase",
+        "Highlights multi-skill profile extraction",
+        "Demonstrates multiple software engineer matches returned"
+      ]
+    },
+    {
+      "id": "scenario_2",
+      "title": "Designer Seeking Product Manager",
+      "transcript": [
+        "User: Hello, I'm Priya",
+        "Assistant: Hi Priya! Tell me a bit about your background.",
+        "User: I'm a UX and visual designer",
+        "Assistant: Sweet. What industries or problem spaces excite you most?",
+        "User: I love working on climate tech and sustainability products",
+        "Assistant: Sounds great! What kind of collaborator are you searching for?",
+        "User: I'm looking for a Product Manager who can help prioritize features",
+        "Assistant: Great, I have a clear picture!"
+      ],
+      "expected_matches": [],
+      "key_features": [
+        "Shows graceful handling of zero direct matches",
+        "Good for demonstrating empty-state messaging on the results page",
+        "Reinforces that the system still captures a rich user profile"
+      ]
+    },
+    {
+      "id": "scenario_3",
+      "title": "Engineer Seeking Designer",
+      "transcript": [
+        "User: Hey, I'm Marco",
+        "Assistant: Hi Marco! What's your role or expertise?",
+        "User: I'm a full-stack engineer focused on React and Node",
+        "Assistant: Nice! What kinds of projects are your passion projects?",
+        "User: I'm building a tool for indie musicians",
+        "Assistant: Love it. Which collaborator would be the dream addition?",
+        "User: I'm looking for a Designer to craft the user experience",
+        "Assistant: Great, I have a clear picture!"
+      ],
+      "expected_matches": [
+        "Maya Patel"
+      ],
+      "key_features": [
+        "Demonstrates complementary matching (engineering + design)",
+        "Great for showcasing polished UserCard UI",
+        "Simple, fast transcript for live demo pacing"
+      ]
+    },
+    {
+      "id": "scenario_4",
+      "title": "Bob Showing Enrichment Boost",
+      "transcript": [
+        "User: Hi there, I'm Bob",
+        "Assistant: Hey Bob! What are your strengths or standout skills?",
+        "User: I'm a growth marketer with experience in paid ads and analytics",
+        "Assistant: Awesome. Any industries you love working in?",
+        "User: I'm into consumer apps and marketplaces",
+        "Assistant: Cool! What kind of partner are you hoping to find?",
+        "User: I'm looking for a Software Engineer to build the product",
+        "Assistant: Great, I have a clear picture!"
+      ],
+      "expected_matches": [
+        "Alex Chen",
+        "Sam Rivera"
+      ],
+      "key_features": [
+        "Triggers mock Bright Data enrichment (adds SEO skill for Bob)",
+        "Great to highlight enriched profile panel on the results screen",
+        "Demonstrates repeatability of software engineer matches"
+      ]
+    },
+    {
+      "id": "scenario_5",
+      "title": "Operations Lead Seeking Finance Expert",
+      "transcript": [
+        "User: Hi, I'm Dana",
+        "Assistant: Nice to meet you Dana! What's your background?",
+        "User: I'm an operations lead with experience scaling logistics teams",
+        "Assistant: Excellent. Which problem spaces excite you right now?",
+        "User: I'm focused on marketplace platforms and sustainability",
+        "Assistant: And who would be the ideal collaborator to join you?",
+        "User: I'm looking for a Finance Expert to help model revenue and fundraising",
+        "Assistant: Great, I have a clear picture!"
+      ],
+      "expected_matches": [
+        "Jordan Lee"
+      ],
+      "key_features": [
+        "Highlights finance-focused matching from the ChromaDB seed data",
+        "Great story for emphasizing business-side collaboration",
+        "Shows single high-quality match scenario"
+      ]
+    }
+  ]
+}
