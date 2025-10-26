@@ -224,13 +224,45 @@ export default function Home() {
       return true;
     }
 
-    if (attempt >= 30) {
-      console.warn('Chatbot provider not ready after waiting.');
+    if (attempt >= 20) {
       return false;
     }
 
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 120));
     return deliverToChatbot(message, options, attempt + 1);
+  };
+
+  const sendThroughChatWidget = (text) => {
+    const input =
+      document.querySelector('.react-chatbot-kit-chat-input') ||
+      document.querySelector('.react-chatbot-kit-chat-message-input');
+    const sendButton = document.querySelector('.react-chatbot-kit-chat-btn-send');
+
+    if (!input || !sendButton) {
+      return false;
+    }
+
+    const setNativeValue = (element, value) => {
+      const tagName = element.tagName;
+      let setter;
+      if (tagName === 'TEXTAREA') {
+        setter =
+          Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set;
+      } else {
+        setter =
+          Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set;
+      }
+      if (setter) {
+        setter.call(element, value);
+      } else {
+        element.value = value;
+      }
+    };
+
+    setNativeValue(input, text);
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    sendButton.click();
+    return true;
   };
 
   const handleComposerSubmit = async (event) => {
@@ -242,7 +274,13 @@ export default function Home() {
 
     setComposerSending(true);
     try {
-      const sent = await deliverToChatbot(trimmed, { addClientMessage: true });
+      const widgetSent = sendThroughChatWidget(trimmed);
+      let sent = widgetSent;
+
+      if (!widgetSent) {
+        sent = await deliverToChatbot(trimmed, { addClientMessage: true });
+      }
+
       if (sent) {
         setInputValue('');
       } else {
