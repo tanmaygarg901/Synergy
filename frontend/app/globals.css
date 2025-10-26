@@ -55,6 +55,10 @@
   }
   body {
     @apply bg-background text-foreground;
+    background-image: linear-gradient(135deg, #0d1b2a 0%, #1d3557 30%, #2a9d8f 55%, #f4a261 85%, #e9c46a 100%);
+    background-attachment: fixed;
+    background-size: cover;
+    color: #0b1324;
   }
 }
 
