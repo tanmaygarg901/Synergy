@@ -19,7 +19,16 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-CORS(app)
+# Configure CORS to allow frontend communication
+CORS(app, resources={
+    r"/*": {
+        "origins": ["http://localhost:3000", "http://127.0.0.1:3000"],
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type"],
+        "expose_headers": ["Content-Type"],
+        "supports_credentials": False
+    }
+})
 
 # Request logging middleware
 @app.before_request
@@ -51,6 +60,53 @@ def log_response_info(response):
 chat_sessions = {}
 
 
+# Validation helpers
+def validate_chat_request(data):
+    """Validate /chat endpoint request data."""
+    if not data:
+        return "Request body is required", 400
+    
+    message = data.get('message', '').strip()
+    session_id = data.get('session_id', '').strip()
+    
+    if not message:
+        return "Message is required and cannot be empty", 400
+    
+    if len(message) > 1000:
+        return "Message is too long (max 1000 characters)", 400
+    
+    if not session_id:
+        return "Session ID is required", 400
+    
+    if len(session_id) > 100:
+        return "Session ID is too long (max 100 characters)", 400
+    
+    return None, None
+
+
+def validate_find_collaborators_request(data):
+    """Validate /find-collaborators endpoint request data."""
+    if not data:
+        return "Request body is required", 400
+    
+    chat_transcript = data.get('chat_transcript', '').strip()
+    session_id = data.get('session_id', '').strip()
+    
+    if not chat_transcript:
+        return "Chat transcript is required and cannot be empty", 400
+    
+    if len(chat_transcript) < 50:
+        return "Chat transcript is too short (minimum 50 characters)", 400
+    
+    if len(chat_transcript) > 10000:
+        return "Chat transcript is too long (max 10000 characters)", 400
+    
+    if not session_id:
+        return "Session ID is required", 400
+    
+    return None, None
+
+
 @app.route('/health', methods=['GET'])
 def health():
     """Health check endpoint."""
@@ -65,8 +121,15 @@ def chat():
     """
     try:
         logger.info("💬 Processing chat request")
-        data = request.json
-        message = data.get('message', '')
+        
+        # Validate request
+        data = request.get_json(silent=True)
+        error_msg, status_code = validate_chat_request(data)
+        if error_msg:
+            logger.warning(f"   ⚠️  Validation failed: {error_msg}")
+            return jsonify({"error": error_msg}), status_code
+        
+        message = data.get('message', '').strip()
         session_id = data.get('session_id', 'default')
         
         logger.info(f"   Session ID: {session_id}")
@@ -109,7 +172,17 @@ def chat():
         logger.error(f"   Error Type: {type(e).__name__}")
         logger.error(f"   Error Message: {str(e)}")
         logger.error(f"   Stack Trace:\n{traceback.format_exc()}")
-        return jsonify({"error": str(e)}), 500
+        
+        # Return user-friendly error messages
+        error_msg = "An unexpected error occurred"
+        if "rate" in str(e).lower() or "quota" in str(e).lower():
+            error_msg = "AI service is temporarily unavailable. Please try again in a moment."
+        elif "connection" in str(e).lower() or "timeout" in str(e).lower():
+            error_msg = "Unable to connect to AI service. Please check your internet connection."
+        elif "api_key" in str(e).lower() or "authentication" in str(e).lower():
+            error_msg = "Service configuration error. Please contact support."
+        
+        return jsonify({"error": error_msg}), 500
 
 
 @app.route('/find-collaborators', methods=['POST'])
@@ -120,8 +193,15 @@ def find_collaborators():
     """
     try:
         logger.info("🔍 Processing find-collaborators request")
-        data = request.json
-        chat_transcript = data.get('chat_transcript', '')
+        
+        # Validate request
+        data = request.get_json(silent=True)
+        error_msg, status_code = validate_find_collaborators_request(data)
+        if error_msg:
+            logger.warning(f"   ⚠️  Validation failed: {error_msg}")
+            return jsonify({"error": error_msg}), status_code
+        
+        chat_transcript = data.get('chat_transcript', '').strip()
         session_id = data.get('session_id', 'default')
         
         logger.info(f"   Session ID: {session_id}")
@@ -168,7 +248,19 @@ def find_collaborators():
         logger.error(f"   Error Type: {type(e).__name__}")
         logger.error(f"   Error Message: {str(e)}")
         logger.error(f"   Stack Trace:\n{traceback.format_exc()}")
-        return jsonify({"error": str(e)}), 500
+        
+        # Return user-friendly error messages
+        error_msg = "An unexpected error occurred while finding collaborators"
+        if "rate" in str(e).lower() or "quota" in str(e).lower():
+            error_msg = "AI service is temporarily unavailable. Please try again in a moment."
+        elif "connection" in str(e).lower() or "timeout" in str(e).lower():
+            error_msg = "Unable to connect to services. Please check your internet connection."
+        elif "collection" in str(e).lower() or "database" in str(e).lower():
+            error_msg = "Database not found. Please ensure the database is seeded."
+        elif "api_key" in str(e).lower() or "authentication" in str(e).lower():
+            error_msg = "Service configuration error. Please contact support."
+        
+        return jsonify({"error": error_msg}), 500
 
 
 if __name__ == '__main__':
