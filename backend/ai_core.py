@@ -65,7 +65,7 @@ Examples:
 
 def extract_user_profile(chat_transcript):
     """
-    Extract structured profile from chat transcript using Groq's llama-3.1-70b-versatile model with JSON mode.
+    Extract structured profile from chat transcript using Groq's llama-3.3-70b-versatile model with JSON mode.
     """
     prompt = f"""Based on this conversation, extract the user's profile in JSON format with these exact keys:
 - name: string
@@ -80,7 +80,7 @@ Return ONLY valid JSON, no other text."""
 
     try:
         response = client.chat.completions.create(
-            model="llama-3.1-70b-versatile",
+            model="llama-3.3-70b-versatile",  # Updated to current model
             messages=[
                 {"role": "system", "content": "You are a JSON extraction expert. Return only valid JSON."},
                 {"role": "user", "content": prompt}
@@ -89,10 +89,37 @@ Return ONLY valid JSON, no other text."""
             response_format={"type": "json_object"}
         )
         
-        profile = json.loads(response.choices[0].message.content)
+        raw_content = response.choices[0].message.content
+        print(f"Raw Groq response: {raw_content}")
+        
+        profile = json.loads(raw_content)
+        print(f"Parsed profile: {profile}")
+        
+        # Ensure all required fields exist
+        if not profile.get("name"):
+            profile["name"] = "User"
+        if not profile.get("skills"):
+            profile["skills"] = ["General"]
+        if not profile.get("interests"):
+            profile["interests"] = ["Collaboration"]
+        if not profile.get("looking_for"):
+            profile["looking_for"] = "Collaborator"
+            
         return profile
+    except json.JSONDecodeError as e:
+        print(f"JSON parsing error: {e}")
+        print(f"Raw response was: {response.choices[0].message.content}")
+        return {
+            "name": "User",
+            "skills": ["General"],
+            "interests": ["Collaboration"],
+            "looking_for": "Software Engineer"
+        }
     except Exception as e:
         print(f"Error extracting profile: {e}")
+        print(f"Error type: {type(e).__name__}")
+        import traceback
+        traceback.print_exc()
         return {
             "name": "User",
             "skills": ["General"],
@@ -138,12 +165,28 @@ def find_collaborators(user_profile):
         if looking_for:
             where_clause = {"role": {"$eq": looking_for}}
         
-        # Query ChromaDB
-        results = collection.query(
-            query_embeddings=[query_embedding],
-            n_results=3,
-            where=where_clause if where_clause else None
-        )
+        # Query ChromaDB with role filter
+        try:
+            results = collection.query(
+                query_embeddings=[query_embedding],
+                n_results=5,  # Return top 5 matches
+                where=where_clause if where_clause else None
+            )
+            
+            # If no matches with role filter, try without filter
+            if not results['metadatas'] or len(results['metadatas'][0]) == 0:
+                if where_clause:
+                    print(f"No exact role matches for '{looking_for}', trying semantic search...")
+                    results = collection.query(
+                        query_embeddings=[query_embedding],
+                        n_results=5
+                    )
+        except Exception as query_error:
+            print(f"Query with filter failed: {query_error}, trying without filter...")
+            results = collection.query(
+                query_embeddings=[query_embedding],
+                n_results=5
+            )
         
         matches = []
         if results and results['metadatas'] and len(results['metadatas'][0]) > 0:
