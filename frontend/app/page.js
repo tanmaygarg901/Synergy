@@ -2,14 +2,17 @@
 
 import { useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
-import { ArrowUpRight, Sparkles } from 'lucide-react';
+import { ArrowUpRight, Loader2, Sparkles } from 'lucide-react';
 import config from '@/components/chatbot/config';
 import MessageParser from '@/components/chatbot/MessageParser';
 import ActionProvider from '@/components/chatbot/ActionProvider';
+import UserCard from '@/components/UserCard';
 
 const Chatbot = dynamic(() => import('react-chatbot-kit').then(mod => mod.default), {
   ssr: false,
 });
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
 
 const suggestedPrompts = [
   'I need a full-stack partner who can move fast on AI infra and is okay with equity-first.',
@@ -22,10 +25,106 @@ export default function Home() {
   const [focused, setFocused] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const inputRef = useRef(null);
+  const sessionIdRef = useRef(
+    `session_${Date.now().toString(36)}_${Math.random().toString(16).slice(2)}`
+  );
+  const [matchState, setMatchState] = useState({
+    status: 'idle',
+    profile: null,
+    matches: [],
+    suggestions: [],
+    userId: null,
+    error: null,
+  });
 
   const handlePromptClick = (prompt) => {
     setInputValue(prompt);
     inputRef.current?.focus();
+  };
+
+  const buildTranscript = (messages) =>
+    messages
+      .map((msg) => `${msg.type === 'bot' ? 'Assistant' : 'User'}: ${msg.message}`)
+      .join('\n');
+
+  const formatTeamSuggestion = (suggestion, index) => {
+    if (!suggestion) {
+      return `Team ${index + 1}`;
+    }
+
+    if (typeof suggestion === 'string') {
+      return suggestion;
+    }
+
+    if (suggestion.summary) {
+      return suggestion.summary;
+    }
+
+    if (Array.isArray(suggestion.members) && suggestion.members.length > 0) {
+      const label = suggestion.team_name || `Team ${index + 1}`;
+      const roster = suggestion.members
+        .map((member) => {
+          const name = member?.name || 'Match';
+          const role = member?.role ? ` (${member.role})` : '';
+          return `${name}${role}`;
+        })
+        .join(' + ');
+      return `${label}: ${roster}`;
+    }
+
+    return `Team ${index + 1}`;
+  };
+
+  const fetchMatchData = async (transcript) => {
+    setMatchState({
+      status: 'loading',
+      profile: null,
+      matches: [],
+      suggestions: [],
+      userId: null,
+      error: null,
+    });
+
+    try {
+      const response = await fetch(`${API_URL}/find-collaborators`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          chat_transcript: transcript,
+          session_id: sessionIdRef.current,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorPayload = await response.json().catch(() => ({}));
+        throw new Error(errorPayload.error || 'Unable to find collaborators right now.');
+      }
+
+      const data = await response.json();
+      setMatchState({
+        status: 'ready',
+        profile: data.your_profile || null,
+        matches: data.matches || [],
+        suggestions: data.team_suggestions || [],
+        userId: data.user_id || null,
+        error: null,
+      });
+      sessionIdRef.current = `session_${Date.now().toString(36)}_${Math.random()
+        .toString(16)
+        .slice(2)}`;
+    } catch (error) {
+      console.error('find-collaborators error:', error);
+      setMatchState({
+        status: 'error',
+        profile: null,
+        matches: [],
+        suggestions: [],
+        userId: null,
+        error: error.message || 'Unexpected error finding collaborators.',
+      });
+    }
   };
 
   const ChatActionProvider = class extends ActionProvider {
@@ -33,29 +132,59 @@ export default function Home() {
       super(createChatBotMessage, setStateFunc);
     }
 
-    handleUserMessage = (message) => {
+    handleUserMessage = async (message) => {
       const trimmed = message.trim();
-      if (!trimmed) return;
+      if (!trimmed) {
+        const warn = this.createChatBotMessage("I didn't catch that—could you share a bit more?");
+        this.setState((prev) => ({
+          ...prev,
+          messages: [...prev.messages, warn],
+        }));
+        return;
+      }
 
-      const replies = [
-        "Logged. Anything else about your ideal partner or timeline?",
-        "Understood. What qualities matter most beyond skills?",
-        "Got it. Share any preferred locations or working cadence?",
-        "Thanks. Are there past collaborators you’ve thrived with?",
-      ];
+      try {
+        const response = await fetch(`${API_URL}/chat`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            message: trimmed,
+            session_id: sessionIdRef.current,
+          }),
+        });
 
-      const response =
-        replies[Math.floor(Math.random() * replies.length)] ??
-        "Appreciated. Tell me more when you're ready.";
+        if (!response.ok) {
+          const payload = await response.json().catch(() => ({}));
+          throw new Error(payload.error || 'Unable to reach Synergy right now.');
+        }
 
-      const botMessage = this.createChatBotMessage(response);
+        const data = await response.json();
+        const botMessage = this.createChatBotMessage(data.response);
 
-      setTimeout(() => {
         this.setState((prev) => ({
           ...prev,
           messages: [...prev.messages, botMessage],
         }));
-      }, 420);
+
+        if (data.is_trigger) {
+          const conversation = [...this.stateRef.messages, { type: 'bot', message: data.response }];
+          const transcript = buildTranscript(conversation);
+          await fetchMatchData(transcript);
+        }
+      } catch (error) {
+        console.error('chat error:', error);
+        const fallback = this.createChatBotMessage(
+          error.message?.includes('Failed to fetch')
+            ? "I'm having trouble connecting. Check the backend and try again."
+            : error.message || 'Something went wrong. Try again in a moment.'
+        );
+        this.setState((prev) => ({
+          ...prev,
+          messages: [...prev.messages, fallback],
+        }));
+      }
     };
   };
 
@@ -154,10 +283,7 @@ export default function Home() {
           </section>
         </div>
 
-        <section
-          id="synergy-chat"
-          className="relative z-10 mt-32 w-full"
-        >
+        <section id="synergy-chat" className="relative z-10 mt-32 w-full">
           <div className="mx-auto flex max-w-4xl flex-col items-center gap-5 text-center">
             <span className="rounded-full border border-white/10 bg-white/[0.05] px-5 py-1 text-xs font-medium uppercase tracking-[0.32em] text-white/55">
               Continue the conversation
@@ -180,6 +306,123 @@ export default function Home() {
             />
           </div>
         </section>
+
+        {matchState.status !== 'idle' && (
+          <section className="relative z-10 mt-20 w-full">
+            <div className="mx-auto flex max-w-5xl flex-col gap-10 rounded-[32px] border border-white/10 bg-white/[0.04] px-8 py-10 text-white backdrop-blur-2xl shadow-[0_40px_120px_-60px_rgba(10,14,40,0.85)] sm:px-16">
+              {matchState.status === 'loading' && (
+                <div className="flex flex-col items-center gap-4 text-center text-white/70">
+                  <Loader2 className="h-10 w-10 animate-spin text-[#46D8FF]" />
+                  <div>
+                    <h3 className="font-heading text-2xl">Matching in progress</h3>
+                    <p className="text-sm text-white/60">
+                      Synergy is reviewing your profile and searching the network.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {matchState.status === 'error' && (
+                <div className="rounded-2xl border border-red-400/40 bg-red-500/10 px-6 py-5 text-center text-sm text-red-200">
+                  {matchState.error}
+                </div>
+              )}
+
+              {matchState.status === 'ready' && (
+                <>
+                  <div className="space-y-3 text-center">
+                    <h3 className="font-heading text-3xl">Your concierge brief</h3>
+                    <p className="text-white/60">
+                      Synergy captured what you shared and found collaborators who complement it.
+                    </p>
+                  </div>
+
+                  {matchState.profile && (
+                    <div className="rounded-3xl border border-white/12 bg-white/[0.06] p-6 shadow-[0_28px_80px_-60px_rgba(20,32,68,0.9)] sm:p-8">
+                      <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="space-y-2 text-left">
+                          <p className="text-sm uppercase tracking-[0.35em] text-white/45">Founder profile</p>
+                          <h4 className="font-heading text-2xl text-white">{matchState.profile.name}</h4>
+                          <p className="text-sm text-white/60">
+                            Looking for <span className="text-white/80">{matchState.profile.looking_for}</span>
+                          </p>
+                          {matchState.userId && (
+                            <p className="text-xs text-white/30">Profile ID: {matchState.userId}</p>
+                          )}
+                        </div>
+                        <div className="grid gap-4 text-left text-sm sm:grid-cols-2">
+                          <div>
+                            <p className="mb-1 text-xs uppercase tracking-[0.2em] text-white/45">Skills</p>
+                            <div className="flex flex-wrap gap-2">
+                              {matchState.profile.skills?.map((skill, idx) => (
+                                <span
+                                  key={`${skill}-${idx}`}
+                                  className="rounded-full border border-white/15 bg-white/[0.08] px-3 py-1 text-xs text-white/75"
+                                >
+                                  {skill}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                          <div>
+                            <p className="mb-1 text-xs uppercase tracking-[0.2em] text-white/45">Interests</p>
+                            <div className="flex flex-wrap gap-2">
+                              {matchState.profile.interests?.map((interest, idx) => (
+                                <span
+                                  key={`${interest}-${idx}`}
+                                  className="rounded-full border border-white/15 bg-white/[0.08] px-3 py-1 text-xs text-white/75"
+                                >
+                                  {interest}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="space-y-6">
+                    <div className="flex flex-col gap-2 text-left">
+                      <h4 className="font-heading text-2xl text-white">Top matches</h4>
+                      <p className="text-sm text-white/55">
+                        Curated from Synergy’s private network and ranked for complementary skills.
+                      </p>
+                    </div>
+
+                    {matchState.matches.length > 0 ? (
+                      <div className="grid gap-6 md:grid-cols-2">
+                        {matchState.matches.map((match) => (
+                          <UserCard key={match.id || match.name} collaborator={match} />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="rounded-2xl border border-white/12 bg-white/[0.04] px-6 py-8 text-center text-sm text-white/60">
+                        No direct matches yet. Try sharing more context or adjust what you’re looking for.
+                      </div>
+                    )}
+                  </div>
+
+                  {matchState.suggestions?.length > 0 && (
+                    <div className="space-y-4">
+                      <h4 className="font-heading text-xl text-white">Suggested team configurations</h4>
+                      <ul className="space-y-3 text-sm text-white/70">
+                        {matchState.suggestions.map((suggestion, index) => (
+                          <li
+                            key={`${suggestion?.team_name || 'team'}-${index}`}
+                            className="rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-4"
+                          >
+                            {formatTeamSuggestion(suggestion, index)}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </section>
+        )}
       </main>
     </div>
   );

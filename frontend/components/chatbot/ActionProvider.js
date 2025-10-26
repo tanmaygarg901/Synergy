@@ -1,7 +1,9 @@
 class ActionProvider {
-  constructor(createChatBotMessage, setStateFunc) {
+  constructor(createChatBotMessage, setStateFunc, createClientMessage, stateRef) {
     this.createChatBotMessage = createChatBotMessage;
     this.setState = setStateFunc;
+    this.createClientMessage = createClientMessage;
+    this.stateRef = stateRef;
   }
 
   handleUserMessage = async (message) => {
