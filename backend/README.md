@@ -1,212 +1,177 @@
-# Synergy Backend
+# 🤝 Synergy Backend
 
-AI-powered collaborator matching system using Groq and ChromaDB.
+AI-powered co-founder matching with team management.
 
-## 🚀 Quick Start (New Setup)
-
-**Important:** Get your Groq API key from: https://console.groq.com/keys
-(Ask your team lead for the shared key)
+## ⚡ Quick Start
 
 ```bash
-# 1. Make scripts executable (first time only)
-chmod +x setup.sh start.sh
-
-# 2. Run setup (first time only)
-./setup.sh
-# You'll be prompted to enter the Groq API key
-
-# 3. Seed the database (first time only)
-source venv/bin/activate
-export GROQ_API_KEY=$(cat .env | grep GROQ_API_KEY | cut -d '=' -f2)
-python seed_db.py
-
-# 4. Start the server
-./start.sh
-```
-
-## 🔄 Daily Usage (After Setup)
-
-```bash
-cd backend
-./start.sh
-```
-
-That's it! The script handles:
-- ✅ Activating virtual environment
-- ✅ Loading API key from .env
-- ✅ Starting Flask server on port 5001
-
-## 📋 Manual Setup (Alternative)
-
-If you prefer manual setup:
-
-```bash
-# 1. Create virtual environment
-python3 -m venv venv
-source venv/bin/activate
-
-# 2. Install dependencies
-pip install --upgrade pip
+# 1. Install
 pip install -r requirements.txt
 
-# 3. Create .env file
+# 2. Set API key
 echo "GROQ_API_KEY=your_key_here" > .env
 
-# 4. Seed database
-export GROQ_API_KEY=$(cat .env | grep GROQ_API_KEY | cut -d '=' -f2)
+# 3. Seed database
 python seed_db.py
 
-# 5. Start server
-python app.py
+# 4. Start
+./start.sh
+
+# 5. Test
+python chat_terminal.py
 ```
 
-## 🧪 Testing Endpoints
+---
 
-### Health Check
+## 🎯 Features
+
+### **Fast AI Chat** (3-4 messages)
+- Extracts name, skills, interests, role needed
+- Concise responses (max 25 words)
+
+### **Semantic Matching**
+- ChromaDB vector search
+- Filters by role & availability
+- Top 5 matches
+
+### **Team Management** ⭐
+- Form teams → Users hidden from search
+- View all teams
+- Dissolve teams → Users available again
+
+### **Auto Storage**
+- Profiles saved automatically
+- Users searchable by others
+
+---
+
+## 🔌 API Endpoints
+
+### Chat & Match
 ```bash
-curl http://localhost:5001/health
+POST /chat
+POST /find-collaborators
 ```
 
-### Chat
+### Teams
 ```bash
-curl -X POST http://localhost:5001/chat \
-  -H "Content-Type: application/json" \
-  -d '{"message": "Hi, my name is Sarah", "session_id": "test1"}'
+POST /team/create
+GET  /team/all
+POST /team/dissolve/<id>
+GET  /users/available
 ```
 
-### Find Collaborators
+### Database
 ```bash
-curl -X POST http://localhost:5001/find-collaborators \
-  -H "Content-Type: application/json" \
-  -d '{
-    "chat_transcript": "User: Hi, I am Sarah\nAssistant: Nice to meet you!\nUser: I have skills in Python and React\nUser: I am interested in HealthTech\nUser: Looking for a Designer",
-    "session_id": "test1"
-  }'
+GET /health
+GET /collaborators
+GET /stats
+POST /search/skills
 ```
 
-## 📁 Project Structure
+---
 
-```
-backend/
-├── app.py              # Flask API server with logging
-├── ai_core.py          # Groq AI and ChromaDB logic
-├── seed_db.py          # Database seeding script
-├── start.sh            # Server startup script
-├── setup.sh            # First-time setup script
-├── requirements.txt    # Python dependencies
-├── .env                # API keys (not in git)
-├── venv/               # Virtual environment (not in git)
-└── chroma_db/          # ChromaDB storage (not in git)
-```
+## 🧪 Testing
 
-## 🔧 Environment Variables
+```bash
+# Interactive chat
+python chat_terminal.py
 
-Create a `.env` file in the backend folder:
+# Team system
+./test_team_system.sh
 
-```
-GROQ_API_KEY=your_groq_api_key_here
+# API tests
+python test_api.py
 ```
 
-**Note:** The `.env` file is gitignored. Each team member creates their own.
+---
+
+## 🏗️ How It Works
+
+```
+Chat → Extract Profile → Save (Available) → Show Matches
+                              ↓
+                         Form Team
+                              ↓
+                    Mark "In Team" → Hide from search
+                              ↓
+                    (Optional) Dissolve → "Available" again
+```
+
+---
+
+## 💾 Database
+
+```python
+{
+    "name": "Alice",
+    "role": "Software Engineer",
+    "skills": "Python, React",
+    "interests": "HealthTech",
+    "availability": "Available",  # or "In Team"
+    "team_id": "None",           # or "team_123"
+    "looking_for": "Designer"
+}
+```
+
+---
+
+## 🚀 Tech Stack
+
+- Flask - Web framework
+- Groq - Llama 3.1 & 3.3
+- ChromaDB - Vector database
+- sentence-transformers - Embeddings
+
+---
+
+## 📝 Environment
+
+```bash
+GROQ_API_KEY=gsk_...  # Required
+```
+
+---
 
 ## 🐛 Troubleshooting
 
-### Port 5000 Already in Use
-We use port 5001 to avoid conflicts with macOS AirPlay Receiver.
+```bash
+# Module errors
+source venv/bin/activate
+pip install -r requirements.txt
 
-### NumPy Compatibility Error
-Already fixed in `requirements.txt` with `numpy<2.0`.
+# Collection not found
+python seed_db.py
 
-### Groq API Key Not Found
-Make sure `.env` file exists and contains the API key.
-
-### Database Not Found
-Run `python seed_db.py` to create and populate the database.
-
-## 🎯 API Endpoints
-
-### `GET /health`
-Health check endpoint.
-
-**Response:**
-```json
-{"status": "ok"}
+# Port in use
+lsof -ti:5001 | xargs kill -9
 ```
 
-### `POST /chat`
-Real-time chat using Groq llama-3.1-8b-instant.
+---
 
-**Request:**
-```json
-{
-  "message": "Hi, my name is Sarah",
-  "session_id": "unique_session_id"
-}
+## 📁 Structure
+
+```
+backend/
+├── app.py               # Flask server
+├── ai_core.py          # AI & database
+├── seed_db.py          # Initial data
+├── chat_terminal.py    # Test interface
+├── test_team_system.sh # Team tests
+├── requirements.txt    # Dependencies
+└── .env                # API keys
 ```
 
-**Response:**
-```json
-{
-  "response": "Nice to meet you, Sarah! What skills do you have?",
-  "is_trigger": false
-}
-```
+---
 
-### `POST /find-collaborators`
-Extract profile and find matches using Groq + ChromaDB.
+## ✅ Ready
 
-**Request:**
-```json
-{
-  "chat_transcript": "User: Hi...\nAssistant: ...",
-  "session_id": "unique_session_id"
-}
-```
+- [x] Conversational AI
+- [x] Profile extraction
+- [x] Semantic matching
+- [x] User storage
+- [x] Team management
+- [x] Availability filtering
+- [x] Complete API
 
-**Response:**
-```json
-{
-  "your_profile": {
-    "name": "Sarah",
-    "skills": ["Python", "React"],
-    "interests": ["HealthTech"],
-    "looking_for": "Designer"
-  },
-  "matches": [
-    {
-      "name": "Jane Smith",
-      "role": "Designer",
-      "bio": "...",
-      "skills": ["UI/UX", "Figma"],
-      "interests": ["HealthTech"],
-      "availability": "Part-time"
-    }
-  ]
-}
-```
-
-## 📝 Logging
-
-All requests and responses are logged with:
-- 📥 Request details (method, path, body)
-- 💬 Processing steps
-- 🤖 AI API calls with timing
-- ✅/❌ Success/error status
-- 📤 Response status and duration
-
-Check the terminal where the server is running to see logs.
-
-## 🤝 Contributing
-
-1. Create a feature branch: `git checkout -b feature/your-feature`
-2. Test locally before committing
-3. Commit with descriptive messages
-4. Push and create a pull request
-
-## 📚 Tech Stack
-
-- **Flask** - Web framework
-- **Groq** - LLM API (llama-3.1-8b-instant, llama-3.1-70b-versatile)
-- **ChromaDB** - Vector database for semantic search
-- **Sentence Transformers** - Text embeddings
-- **Python 3.9+** - Programming language
+**Deploy it!** 🚀

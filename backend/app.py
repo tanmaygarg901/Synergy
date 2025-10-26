@@ -152,10 +152,37 @@ def chat():
         logger.info(f"   ✅ Groq API response received in {ai_duration:.3f}s")
         logger.info(f"   AI Response: {response[:100]}..." if len(response) > 100 else f"   AI Response: {response}")
         
-        # Check for trigger phrase
-        is_trigger = "Great, I have a clear picture!" in response
+        # Determine trigger: exact phrase OR server-side extraction shows enough info (skills+interests)
+        phrase_trigger = "Great, I have everything I need!" in response
+        extracted_trigger = False
+        try:
+            augmented_history = chat_history + [
+                {"role": "user", "content": message},
+                {"role": "assistant", "content": response}
+            ]
+            transcript_lines = []
+            for m in augmented_history:
+                role = m.get("role", "assistant")
+                prefix = "User" if role == "user" else "Assistant"
+                transcript_lines.append(f"{prefix}: {m.get('content', '')}")
+            transcript_str = "\n".join(transcript_lines)
+
+            extracted_profile = ai_core.extract_user_profile(transcript_str)
+            skills = extracted_profile.get("skills") or []
+            interests = extracted_profile.get("interests") or []
+            skills_ok = isinstance(skills, list) and len(skills) > 0 and skills != ["General"]
+            interests_ok = isinstance(interests, list) and len(interests) > 0 and interests != ["Collaboration"]
+            extracted_trigger = bool(skills_ok and interests_ok)
+            logger.info(f"   🔎 Auto-trigger check: skills_ok={skills_ok}, interests_ok={interests_ok}")
+        except Exception as trigger_err:
+            logger.warning(f"   ⚠️ Auto-trigger check failed: {trigger_err}")
+            extracted_trigger = False
+
+        is_trigger = phrase_trigger or extracted_trigger
         if is_trigger:
-            logger.info("   🎯 TRIGGER PHRASE DETECTED - Moving to profile extraction")
+            if not phrase_trigger:
+                response = "Great, I have everything I need!"
+            logger.info("   🎯 TRIGGER CONFIRMED - Proceeding to matching")
         
         # Update chat history
         chat_history.append({"role": "user", "content": message})
@@ -233,6 +260,23 @@ def find_collaborators():
         else:
             logger.warning("   ⚠️  No matches found!")
         
+        # Build team suggestions from matches
+        logger.info("   🧩 Building team suggestions...")
+        team_suggestions = ai_core.build_team_suggestions(user_profile, matches)
+        if team_suggestions:
+            logger.info(f"   ✅ Built {len(team_suggestions)} team suggestion(s)")
+        else:
+            logger.info("   ℹ️  No team suggestions available")
+        
+        # Save user profile to database so they can be matched with others!
+        logger.info("   💾 Saving user profile to database...")
+        user_id = ai_core.save_user_profile(user_profile)
+        if user_id:
+            logger.info(f"   ✅ User profile saved with ID: {user_id}")
+            logger.info(f"   🎯 This user is now searchable by others!")
+        else:
+            logger.warning("   ⚠️  Failed to save user profile")
+        
         # Clear session
         if session_id in chat_sessions:
             logger.info(f"   🗑️  Clearing session: {session_id}")
@@ -241,7 +285,9 @@ def find_collaborators():
         logger.info("   ✅ Find-collaborators completed successfully")
         return jsonify({
             "your_profile": user_profile,
-            "matches": matches
+            "matches": matches,
+            "user_id": user_id,  # Return the saved user ID
+            "team_suggestions": team_suggestions
         })
     except Exception as e:
         logger.error(f"❌ ERROR in /find-collaborators endpoint:")
@@ -263,6 +309,153 @@ def find_collaborators():
         return jsonify({"error": error_msg}), 500
 
 
+@app.route('/collaborators', methods=['GET'])
+def get_collaborators():
+    """
+    Get all collaborators or filter by role.
+    Query params: ?role=Software%20Engineer
+    """
+    try:
+        role = request.args.get('role')
+        
+        if role:
+            logger.info(f"🔍 Getting collaborators with role: {role}")
+            collaborators = ai_core.get_collaborators_by_role(role)
+        else:
+            logger.info("🔍 Getting all collaborators")
+            collaborators = ai_core.get_all_collaborators()
+        
+        return jsonify({
+            "count": len(collaborators),
+            "collaborators": collaborators
+        })
+    except Exception as e:
+        logger.error(f"❌ ERROR in /collaborators endpoint: {e}")
+        return jsonify({"error": "Failed to retrieve collaborators"}), 500
+
+
+@app.route('/collaborators/<collab_id>', methods=['GET'])
+def get_collaborator(collab_id):
+    """
+    Get a single collaborator by ID.
+    """
+    try:
+        logger.info(f"🔍 Getting collaborator: {collab_id}")
+        collaborator = ai_core.get_collaborator_by_id(collab_id)
+        
+        if collaborator:
+            return jsonify(collaborator)
+        else:
+            return jsonify({"error": "Collaborator not found"}), 404
+    except Exception as e:
+        logger.error(f"❌ ERROR in /collaborators/<id> endpoint: {e}")
+        return jsonify({"error": "Failed to retrieve collaborator"}), 500
+
+
+@app.route('/search/skills', methods=['POST'])
+def search_skills():
+    """
+    Search for collaborators by skills.
+    Body: {"skills": ["Python", "React"]}
+    """
+    try:
+        data = request.get_json(silent=True)
+        if not data or 'skills' not in data:
+            return jsonify({"error": "Skills list is required"}), 400
+        
+        skills = data.get('skills', [])
+        logger.info(f"🔍 Searching by skills: {skills}")
+        
+        matches = ai_core.search_by_skills(skills)
+        return jsonify({
+            "count": len(matches),
+            "matches": matches
+        })
+    except Exception as e:
+        logger.error(f"❌ ERROR in /search/skills endpoint: {e}")
+        return jsonify({"error": "Failed to search by skills"}), 500
+
+
+@app.route('/stats', methods=['GET'])
+def get_stats():
+    """
+    Get database statistics.
+    """
+    try:
+        logger.info("📊 Getting database statistics")
+        stats = ai_core.get_database_stats()
+        return jsonify(stats)
+    except Exception as e:
+        logger.error(f"❌ ERROR in /stats endpoint: {e}")
+        return jsonify({"error": "Failed to retrieve statistics"}), 500
+
+
+@app.route('/team/create', methods=['POST'])
+def create_team():
+    """Create a team from user IDs"""
+    try:
+        data = request.json
+        user_ids = data.get('user_ids', [])
+        team_name = data.get('team_name', 'Unnamed Team')
+        
+        if not user_ids or len(user_ids) < 2:
+            return jsonify({"error": "Need at least 2 user IDs to form a team"}), 400
+        
+        team_id = ai_core.create_team(user_ids, team_name)
+        
+        if team_id:
+            return jsonify({
+                "message": f"Team '{team_name}' created successfully",
+                "team_id": team_id,
+                "members": user_ids
+            })
+        else:
+            return jsonify({"error": "Failed to create team"}), 500
+            
+    except Exception as e:
+        logger.error(f"❌ ERROR in /team/create: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/team/all', methods=['GET'])
+def get_all_teams():
+    """Get all formed teams"""
+    try:
+        teams = ai_core.get_teams()
+        return jsonify({"teams": teams})
+    except Exception as e:
+        logger.error(f"❌ ERROR in /team/all: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/team/dissolve/<team_id>', methods=['POST'])
+def dissolve_team(team_id):
+    """Dissolve a team and make members available again"""
+    try:
+        success = ai_core.dissolve_team(team_id)
+        if success:
+            return jsonify({"message": f"Team {team_id} dissolved successfully"})
+        else:
+            return jsonify({"error": "Failed to dissolve team"}), 500
+    except Exception as e:
+        logger.error(f"❌ ERROR in /team/dissolve: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/users/available', methods=['GET'])
+def get_available():
+    """Get users who are still available (not in a team)"""
+    try:
+        available = ai_core.get_available_users()
+        return jsonify({
+            "available_users": available,
+            "count": len(available)
+        })
+    except Exception as e:
+        logger.error(f"❌ ERROR in /users/available: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
 if __name__ == '__main__':
     logger.info("\n" + "="*80)
     logger.info("🚀 Starting Synergy Backend Server")
@@ -272,5 +465,9 @@ if __name__ == '__main__':
     logger.info("      GET  /health")
     logger.info("      POST /chat")
     logger.info("      POST /find-collaborators")
+    logger.info("      GET  /collaborators")
+    logger.info("      GET  /collaborators/<id>")
+    logger.info("      POST /search/skills")
+    logger.info("      GET  /stats")
     logger.info("="*80 + "\n")
     app.run(debug=True, port=5001)
