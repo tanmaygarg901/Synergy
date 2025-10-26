@@ -53,7 +53,7 @@
 @layer base {
   html {
     height: 100%;
-    overscroll-behavior: none;
+    overscroll-behavior-y: contain;
   }
 
   * {
@@ -62,8 +62,8 @@
   body {
     @apply bg-background text-foreground antialiased;
     min-height: 100vh;
-    overflow: hidden;
-    overscroll-behavior: none;
+    overflow-x: hidden;
+    overscroll-behavior-y: contain;
     font-family: var(
       --font-body,
       "Plus Jakarta Sans",
@@ -156,4 +156,81 @@
   .animate-fade-up {
     animation: synergy-fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
   }
+}
+
+.synergy-chat .react-chatbot-kit-chat-container {
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+  background: transparent;
+}
+
+.synergy-chat .react-chatbot-kit-chat-inner-container {
+  border-radius: 28px;
+  background: rgba(10, 16, 32, 0.65);
+  backdrop-filter: blur(34px);
+  border: 1px solid rgba(152, 180, 255, 0.18);
+  box-shadow: 0 40px 120px -70px rgba(28, 46, 110, 0.9);
+  min-height: 520px;
+}
+
+.synergy-chat .react-chatbot-kit-chat-header {
+  display: none;
+}
+
+.synergy-chat .react-chatbot-kit-chat-message-container {
+  padding: 1.75rem 2rem 1rem;
+}
+
+.synergy-chat .react-chatbot-kit-chat-input-container {
+  border-top: 1px solid rgba(152, 180, 255, 0.14);
+  padding: 1rem 1.5rem;
+  background: rgba(12, 16, 28, 0.75);
+  border-radius: 0 0 28px 28px;
+}
+
+.synergy-chat .react-chatbot-kit-chat-input {
+  flex: 1;
+  background: transparent;
+  color: #eef3ff;
+  font-size: 0.95rem;
+}
+
+.synergy-chat .react-chatbot-kit-chat-input:focus {
+  outline: none;
+}
+
+.synergy-chat .react-chatbot-kit-chat-bot-message {
+  background: rgba(94, 132, 255, 0.16);
+  border: 1px solid rgba(94, 132, 255, 0.32);
+  color: rgba(238, 243, 255, 0.9);
+  border-radius: 18px;
+  padding: 0.9rem 1.1rem;
+  max-width: 84%;
+}
+
+.synergy-chat .react-chatbot-kit-user-chat-message {
+  background: rgba(80, 206, 255, 0.22);
+  border: 1px solid rgba(80, 206, 255, 0.32);
+  color: rgba(232, 245, 255, 0.94);
+  border-radius: 18px;
+  padding: 0.9rem 1.1rem;
+  max-width: 84%;
+  margin-left: auto;
+}
+
+.synergy-chat .react-chatbot-kit-chat-btn-send {
+  background: linear-gradient(135deg, #726cff 0%, #5a88ff 50%, #46d8ff 100%);
+  border-radius: 9999px;
+  padding: 0.6rem 1.4rem;
+  font-weight: 600;
+  color: #ffffff;
+  border: none;
+  box-shadow: 0 18px 45px -18px rgba(90, 144, 255, 0.7);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.synergy-chat .react-chatbot-kit-chat-btn-send:hover {
+  transform: translateY(-1px) scale(1.02);
+  box-shadow: 0 22px 50px -16px rgba(90, 144, 255, 0.78);
 }

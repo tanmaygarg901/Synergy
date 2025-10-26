@@ -1,5 +1,6 @@
-import "./globals.css";
 import { Plus_Jakarta_Sans, Space_Grotesk } from "next/font/google";
+import "./globals.css";
+import "react-chatbot-kit/build/main.css";
 
 const bodyFont = Plus_Jakarta_Sans({
   subsets: ["latin"],

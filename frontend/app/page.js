@@ -1,7 +1,15 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { ArrowUpRight, Sparkles } from 'lucide-react';
+import config from '@/components/chatbot/config';
+import MessageParser from '@/components/chatbot/MessageParser';
+import ActionProvider from '@/components/chatbot/ActionProvider';
+
+const Chatbot = dynamic(() => import('react-chatbot-kit').then(mod => mod.default), {
+  ssr: false,
+});
 
 const suggestedPrompts = [
   'I need a full-stack partner who can move fast on AI infra and is okay with equity-first.',
@@ -18,6 +26,37 @@ export default function Home() {
   const handlePromptClick = (prompt) => {
     setInputValue(prompt);
     inputRef.current?.focus();
+  };
+
+  const ChatActionProvider = class extends ActionProvider {
+    constructor(createChatBotMessage, setStateFunc) {
+      super(createChatBotMessage, setStateFunc);
+    }
+
+    handleUserMessage = (message) => {
+      const trimmed = message.trim();
+      if (!trimmed) return;
+
+      const replies = [
+        "Logged. Anything else about your ideal partner or timeline?",
+        "Understood. What qualities matter most beyond skills?",
+        "Got it. Share any preferred locations or working cadence?",
+        "Thanks. Are there past collaborators you’ve thrived with?",
+      ];
+
+      const response =
+        replies[Math.floor(Math.random() * replies.length)] ??
+        "Appreciated. Tell me more when you're ready.";
+
+      const botMessage = this.createChatBotMessage(response);
+
+      setTimeout(() => {
+        this.setState((prev) => ({
+          ...prev,
+          messages: [...prev.messages, botMessage],
+        }));
+      }, 420);
+    };
   };
 
   return (
@@ -44,7 +83,7 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="relative flex min-h-screen flex-col items-center px-4 pb-16 pt-28 sm:px-8">
+      <main className="relative flex min-h-screen flex-col items-center px-4 pb-32 pt-28 sm:px-8">
         <div className="mx-auto flex w-full max-w-[min(1280px,calc(100%-1.5rem))] flex-col items-center">
           <section id="how" className="relative w-full">
             <div className="absolute -inset-[1.5px] rounded-[34px] bg-gradient-to-br from-white/45 via-white/10 to-transparent opacity-50 blur-2xl" />
@@ -114,6 +153,33 @@ export default function Home() {
             </div>
           </section>
         </div>
+
+        <section
+          id="synergy-chat"
+          className="relative z-10 mt-32 w-full"
+        >
+          <div className="mx-auto flex max-w-4xl flex-col items-center gap-5 text-center">
+            <span className="rounded-full border border-white/10 bg-white/[0.05] px-5 py-1 text-xs font-medium uppercase tracking-[0.32em] text-white/55">
+              Continue the conversation
+            </span>
+            <h2 className="font-heading text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+              Chat with Synergy AI
+            </h2>
+            <p className="max-w-2xl text-sm leading-relaxed text-white/60 sm:text-base">
+              Share more context and Synergy will refine co-founder matches in real time.
+            </p>
+          </div>
+          <div className="synergy-chat mx-auto mt-12 w-full max-w-5xl px-0">
+            <Chatbot
+              config={config}
+              messageParser={MessageParser}
+              actionProvider={ChatActionProvider}
+              placeholderText="Tell Synergy what you need next..."
+              headerText="Synergy AI"
+              validator={(input) => input.trim().length > 0}
+            />
+          </div>
+        </section>
       </main>
     </div>
   );
