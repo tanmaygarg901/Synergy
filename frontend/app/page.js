@@ -29,7 +29,7 @@ export default function Home() {
       </div>
 
       <header className="fixed top-0 left-0 right-0 z-30 px-6 py-6 sm:px-10">
-        <div className="mx-auto flex max-w-6xl items-center justify-between rounded-full border border-white/10 bg-white/[0.06] px-6 py-4 backdrop-blur-2xl">
+        <div className="flex w-full items-center justify-between rounded-full border border-white/10 bg-white/[0.06] px-6 py-4 backdrop-blur-2xl">
           <div className="flex items-center gap-3">
             <span className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#726BFF]/80 via-[#6C96FF]/70 to-[#59E3FF]/70 shadow-[0_0_25px_rgba(103,129,255,0.45)]">
               <Sparkles className="h-4 w-4 text-white" aria-hidden="true" />
@@ -57,8 +57,8 @@ export default function Home() {
       </header>
 
       <main className="relative flex min-h-screen flex-col items-center justify-center px-6 pb-20 pt-36 sm:px-10">
-        <div className="mx-auto flex w-full max-w-5xl flex-col items-center gap-14">
-          <section className="relative w-full max-w-4xl">
+        <div className="flex w-full flex-col items-stretch gap-14">
+          <section className="relative w-full">
             <div className="absolute -inset-[1.5px] rounded-[34px] bg-gradient-to-br from-white/45 via-white/10 to-transparent opacity-50 blur-2xl" />
             <div className="relative flex flex-col gap-10 rounded-[32px] border border-white/12 bg-white/[0.05] px-8 py-12 shadow-[0_45px_120px_-45px_rgba(15,22,52,0.9)] backdrop-blur-[28px] sm:px-16 sm:py-16">
               <div
@@ -125,11 +125,11 @@ export default function Home() {
 
           <section
             id="how"
-            className="w-full max-w-4xl opacity-0 animate-fade-up"
+            className="w-full opacity-0 animate-fade-up"
             style={{ animationDelay: '320ms' }}
           >
-            <div className="rounded-[28px] border border-white/12 bg-white/[0.04] px-6 py-6 backdrop-blur-2xl shadow-[0_25px_80px_-52px_rgba(8,16,36,0.95)] sm:px-10 sm:py-7">
-              <div className="flex flex-col items-stretch gap-6 text-center text-sm text-white/65 sm:flex-row sm:items-center sm:justify-between sm:gap-0 sm:text-base sm:divide-x sm:divide-white/12">
+            {/* <div className="rounded-[28px] border border-white/12 bg-white/[0.04] px-6 py-6 backdrop-blur-2xl shadow-[0_25px_80px_-52px_rgba(8,16,36,0.95)] sm:px-10 sm:py-7"> */}
+              {/* <div className="flex flex-col items-stretch gap-6 text-center text-sm text-white/65 sm:flex-row sm:items-center sm:justify-between sm:gap-0 sm:text-base sm:divide-x sm:divide-white/12">
                 {proofPoints.map((point) => (
                   <div key={point.label} className="flex flex-1 flex-col gap-2 px-0 sm:px-8">
                     <span className="font-heading text-2xl font-semibold text-white">
@@ -140,8 +140,9 @@ export default function Home() {
                     </span>
                   </div>
                 ))}
-              </div>
-            </div>
+              </div> */}
+            {/* </div> */}
+            
           </section>
         </div>
       </main>
