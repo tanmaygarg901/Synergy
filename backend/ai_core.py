@@ -34,16 +34,18 @@ TARGET SLOTS (in priority order):
 4) Name — OPTIONAL
 
 BEHAVIOR RULES:
-- Read the full conversation before responding.
+- FIRST: Check if the user's message contains BOTH skills AND interests/domain.
+- If YES (even on first message), say EXACTLY: "Great, I have everything I need!"
+- If NO, ask at most ONE short question (<= 12 words) about what's missing.
 - Never ask for info already provided.
-- Ask at most ONE short question per turn (<= 12 words).
-- If user is unsure about role or says "any/unsure/open": accept it and proceed — do not push.
-- When you have at least skills AND interests (and optionally idea/links), say EXACTLY:
-  Great, I have everything I need!
+- If user is unsure about role or says "any/unsure/open": accept it and proceed.
 - Do not add explanations, checklists, or summaries. Keep replies minimal.
 
 EXAMPLES:
-User: "I’m Alex, Python/React, into HealthTech/AI, not sure what role I need"
+User: "Product designer with fintech experience. Want to build a B2B payments platform, need an engineer who knows backend systems."
+You: Great, I have everything I need!
+
+User: "I'm Alex, Python/React, into HealthTech/AI, not sure what role I need"
 You: Great, I have everything I need!
 
 User: "Founder with a productivity idea, need two more people"
@@ -70,7 +72,6 @@ You: What domains interest you most?
         )
         return response.choices[0].message.content
     except Exception as e:
-        print(f"Error in chat response: {e}")
         return "I'm having trouble responding right now. Could you try again?"
 
 
@@ -121,10 +122,7 @@ Return ONLY valid JSON, no other text."""
         )
         
         raw_content = response.choices[0].message.content
-        print(f"Raw Groq response: {raw_content}")
-        
         profile = json.loads(raw_content)
-        print(f"Parsed profile: {profile}")
         
         # Ensure all required fields exist
         if not profile.get("name"):
@@ -138,8 +136,6 @@ Return ONLY valid JSON, no other text."""
             
         return profile
     except json.JSONDecodeError as e:
-        print(f"JSON parsing error: {e}")
-        print(f"Raw response was: {response.choices[0].message.content}")
         return {
             "name": "User",
             "skills": ["General"],
@@ -147,64 +143,12 @@ Return ONLY valid JSON, no other text."""
             "looking_for": "Software Engineer"
         }
     except Exception as e:
-        print(f"Error extracting profile: {e}")
-        print(f"Error type: {type(e).__name__}")
-        import traceback
-        traceback.print_exc()
         return {
             "name": "User",
             "skills": ["General"],
             "interests": ["Collaboration"],
             "looking_for": "Software Engineer"
         }
-
-
-def mock_bright_data_enrichment(profile):
-    """
-    Mock Bright Data enrichment - simulates what real enrichment would add.
-    
-    NOTE: This is DEMO data. In production, this would call Bright Data's API
-    to enrich profiles with LinkedIn data, company info, education, etc.
-    
-    Real enrichment would include:
-    - LinkedIn profile data
-    - Current/past companies
-    - Education history
-    - Social media links
-    - Professional certifications
-    """
-    interests = ' '.join(profile.get('interests', [])).lower()
-    name = profile.get('name', '').lower()
-    skills = profile.get('skills', [])
-    
-    # Mock rule 1: If AI interest detected, note aspirations instead of inflating skills
-    if 'ai' in interests or 'machine learning' in interests:
-        aspirations = profile.get('aspirations', [])
-        if isinstance(aspirations, list):
-            for a in ['Machine Learning', 'TensorFlow']:
-                if a not in aspirations:
-                    aspirations.append(a)
-            profile['aspirations'] = aspirations
-    
-    # Mock rule 2: Add mock company data
-    if 'bob' in name:
-        profile['previous_company'] = 'TechCorp (2020-2023)'
-        skills.append('SEO')
-    elif 'healthtech' in interests or 'healthcare' in interests:
-        profile['previous_company'] = 'MedTech Innovations (2019-2023)'
-    
-    # Mock rule 3: Add mock education based on role
-    if profile.get('looking_for') == 'Software Engineer':
-        profile['education'] = 'BS Computer Science, Stanford University'
-    elif profile.get('looking_for') == 'Designer':
-        profile['education'] = 'BFA Design, Rhode Island School of Design'
-    
-    # Mock rule 4: Add social links (dummy URLs for demo)
-    profile['linkedin'] = f"https://linkedin.com/in/{name.replace(' ', '-')}"
-    profile['github'] = f"https://github.com/{name.replace(' ', '')}" if 'engineer' in profile.get('looking_for', '').lower() else None
-    
-    profile['skills'] = skills
-    return profile
 
 
 def create_embedding(text):
@@ -717,14 +661,73 @@ def build_team_suggestions(user_profile, matches):
                     if len(suggestion) == 2:
                         break
 
-        # Build final structure (2-person team with user + 2 matches; cap 2 to keep simple)
+        # Build multiple team suggestions with different combinations
         teams = []
-        if suggestion:
+        
+        # Suggestion 1: Core balanced team (Designer + Product/Engineer)
+        if suggestion and len(suggestion) >= 2:
             teams.append({
-                "members": suggestion[:2]
+                "members": suggestion[:2],
+                "reasoning": f"A balanced team combining {suggestion[0].get('role', 'Unknown')} and {suggestion[1].get('role', 'Unknown')} skills. Perfect for early-stage product development with complementary expertise."
             })
-        return teams
-    except Exception:
+        
+        # Suggestion 2: Technical powerhouse (2 different technical roles)
+        tech_suggestion = []
+        for role in ['Software Engineer', 'Data Scientist']:
+            if buckets.get(role) and len(buckets[role]) > 0:
+                # Get different person than first suggestion
+                for candidate in buckets[role]:
+                    if candidate not in suggestion[:2]:
+                        tech_suggestion.append(candidate)
+                        break
+        if len(tech_suggestion) >= 2:
+            teams.append({
+                "members": tech_suggestion[:2],
+                "reasoning": f"Strong technical foundation with {tech_suggestion[0].get('role', 'Unknown')} and {tech_suggestion[1].get('role', 'Unknown')}. Ideal for building complex tech infrastructure and AI/ML features."
+            })
+        
+        # Suggestion 3: Growth-focused team (PM + another complementary role)
+        if buckets.get('Product Manager') and len(suggestion) > 0:
+            pm = buckets['Product Manager'][0]
+            # Find someone different from first two suggestions
+            other = None
+            for role in ['Designer', 'Software Engineer', 'Data Scientist']:
+                if buckets.get(role):
+                    for candidate in buckets[role]:
+                        if candidate not in suggestion[:2] and candidate != pm:
+                            other = candidate
+                            break
+                    if other:
+                        break
+            
+            if other:
+                teams.append({
+                    "members": [pm, other],
+                    "reasoning": f"Product-led team with {pm.get('role', 'PM')} driving strategy and {other.get('role', 'Unknown')} executing. Great for user-centric product development and rapid iteration."
+                })
+        
+        # If we only have 1-2 teams, add a diverse alternative
+        if len(teams) < 3 and len(suggestion) >= 2:
+            # Try to create a diverse team from remaining matches
+            diverse_team = []
+            used_roles = set()
+            for match in matches[:5]:  # Look at top 5 matches
+                role = _canon_role(match.get('role', ''))
+                if role not in used_roles and match not in suggestion[:2]:
+                    diverse_team.append(match)
+                    used_roles.add(role)
+                if len(diverse_team) == 2:
+                    break
+            
+            if len(diverse_team) == 2:
+                teams.append({
+                    "members": diverse_team,
+                    "reasoning": f"Diverse skill combination with {diverse_team[0].get('role', 'Unknown')} and {diverse_team[1].get('role', 'Unknown')}. Brings different perspectives and broader capabilities to your project."
+                })
+        
+        return teams[:3]  # Return max 3 suggestions
+    except Exception as e:
+        print(f"Error building team suggestions: {e}")
         return []
 
 def get_all_collaborators():

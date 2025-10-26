@@ -1065,7 +1065,6 @@ def seed_database():
         # Delete existing collection if it exists
         try:
             chroma_client.delete_collection(name="collaborators")
-            print("Deleted existing collection")
         except:
             pass
         

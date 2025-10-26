@@ -4,7 +4,6 @@ from dotenv import load_dotenv
 import logging
 import time
 import traceback
-from datetime import datetime
 import ai_core
 
 # Load environment variables
@@ -35,25 +34,13 @@ CORS(app, resources={
 def log_request_info():
     """Log incoming request details."""
     request.start_time = time.time()
-    logger.info(f"\n{'='*80}")
-    logger.info(f"📥 Incoming Request: {request.method} {request.path}")
-    logger.info(f"   Client IP: {request.remote_addr}")
-    logger.info(f"   Headers: {dict(request.headers)}")
-    if request.is_json:
-        # Log request body but truncate if too long
-        data = request.get_json()
-        data_str = str(data)
-        if len(data_str) > 500:
-            data_str = data_str[:500] + "... (truncated)"
-        logger.info(f"   Request Body: {data_str}")
+    logger.info(f"📥 {request.method} {request.path}")
 
 @app.after_request
 def log_response_info(response):
     """Log response details and request duration."""
     duration = time.time() - request.start_time
-    logger.info(f"📤 Response: {response.status_code} {response.status}")
-    logger.info(f"   Duration: {duration:.3f}s")
-    logger.info(f"{'='*80}\n")
+    logger.info(f"📤 {response.status_code} - {duration:.3f}s\n")
     return response
 
 # Store chat history per session (in production, use proper session management)
@@ -231,58 +218,16 @@ def find_collaborators():
         chat_transcript = data.get('chat_transcript', '').strip()
         session_id = data.get('session_id', 'default')
         
-        logger.info(f"   Session ID: {session_id}")
-        logger.info(f"   Transcript length: {len(chat_transcript)} characters")
-        
-        # Extract structured profile using Groq 70b
-        logger.info("   🤖 Extracting user profile with Groq 70b...")
-        extract_start = time.time()
         user_profile = ai_core.extract_user_profile(chat_transcript)
-        extract_duration = time.time() - extract_start
-        logger.info(f"   ✅ Profile extracted in {extract_duration:.3f}s")
-        logger.info(f"   Profile: {user_profile}")
-        
-        # Run mock enrichment
-        logger.info("   🔧 Running mock data enrichment...")
-        user_profile = ai_core.mock_bright_data_enrichment(user_profile)
-        logger.info(f"   ✅ Enriched profile: {user_profile}")
-        
-        # Find matching collaborators
-        logger.info("   🔎 Searching ChromaDB for matching collaborators...")
-        search_start = time.time()
         matches = ai_core.find_collaborators(user_profile)
-        search_duration = time.time() - search_start
-        logger.info(f"   ✅ Found {len(matches)} matches in {search_duration:.3f}s")
-        
-        if matches:
-            for i, match in enumerate(matches, 1):
-                logger.info(f"   Match {i}: {match.get('name', 'Unknown')} - {match.get('role', 'Unknown')}")
-        else:
-            logger.warning("   ⚠️  No matches found!")
-        
-        # Build team suggestions from matches
-        logger.info("   🧩 Building team suggestions...")
         team_suggestions = ai_core.build_team_suggestions(user_profile, matches)
-        if team_suggestions:
-            logger.info(f"   ✅ Built {len(team_suggestions)} team suggestion(s)")
-        else:
-            logger.info("   ℹ️  No team suggestions available")
-        
-        # Save user profile to database so they can be matched with others!
-        logger.info("   💾 Saving user profile to database...")
         user_id = ai_core.save_user_profile(user_profile)
-        if user_id:
-            logger.info(f"   ✅ User profile saved with ID: {user_id}")
-            logger.info(f"   🎯 This user is now searchable by others!")
-        else:
-            logger.warning("   ⚠️  Failed to save user profile")
         
         # Clear session
         if session_id in chat_sessions:
-            logger.info(f"   🗑️  Clearing session: {session_id}")
             del chat_sessions[session_id]
         
-        logger.info("   ✅ Find-collaborators completed successfully")
+        logger.info(f"   ✅ Found {len(matches)} matches, saved user {user_id}")
         return jsonify({
             "your_profile": user_profile,
             "matches": matches,
@@ -290,10 +235,8 @@ def find_collaborators():
             "team_suggestions": team_suggestions
         })
     except Exception as e:
-        logger.error(f"❌ ERROR in /find-collaborators endpoint:")
-        logger.error(f"   Error Type: {type(e).__name__}")
-        logger.error(f"   Error Message: {str(e)}")
-        logger.error(f"   Stack Trace:\n{traceback.format_exc()}")
+        logger.error(f"❌ ERROR in /find-collaborators: {str(e)}")
+        logger.error(traceback.format_exc())
         
         # Return user-friendly error messages
         error_msg = "An unexpected error occurred while finding collaborators"
