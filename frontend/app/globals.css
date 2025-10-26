@@ -148,4 +148,14 @@
   .animate-fade-up {
     animation: synergy-fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
   }
+
+  .chatbot-full .react-chatbot-kit-chat-container,
+  .chatbot-full .react-chatbot-kit-chat-inner-container,
+  .chatbot-full .react-chatbot-kit-chat-input-container {
+    width: 100%;
+  }
+
+  .chatbot-full .react-chatbot-kit-chat-container {
+    max-width: none;
+  }
 }

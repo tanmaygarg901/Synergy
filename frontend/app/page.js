@@ -2,6 +2,11 @@
 
 import { useState } from 'react';
 import { ArrowUpRight, Sparkles } from 'lucide-react';
+import Chatbot, { createClientMessage } from 'react-chatbot-kit';
+import 'react-chatbot-kit/build/main.css';
+import config from '@/components/chatbot/config';
+import MessageParser from '@/components/chatbot/MessageParser';
+import ActionProvider from '@/components/chatbot/ActionProvider';
 
 const suggestedPrompts = [
   'Find a technical co-founder who loves edge AI hardware.',
@@ -17,6 +22,9 @@ const proofPoints = [
 
 export default function Home() {
   const [focused, setFocused] = useState(false);
+  const [inputValue, setInputValue] = useState('');
+  const [chatVisible, setChatVisible] = useState(false);
+  const [chatMessages, setChatMessages] = useState(() => [...config.initialMessages]);
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#05060D] text-white">
@@ -81,7 +89,20 @@ export default function Home() {
                 </p>
               </div>
               <form
-                onSubmit={(event) => event.preventDefault()}
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  const trimmed = inputValue.trim();
+                  if (!trimmed) {
+                    return;
+                  }
+
+                  setChatMessages((previous) => [
+                    ...previous,
+                    createClientMessage(trimmed),
+                  ]);
+                  setChatVisible(true);
+                  setInputValue('');
+                }}
                 className="space-y-6 opacity-0 animate-fade-up"
                 style={{ animationDelay: '220ms' }}
               >
@@ -99,9 +120,11 @@ export default function Home() {
                     onBlur={() => setFocused(false)}
                     className="w-full bg-transparent text-base text-white placeholder:text-white/35 focus:outline-none sm:text-lg"
                     aria-label="Describe your dream co-founder"
+                    value={inputValue}
+                    onChange={(event) => setInputValue(event.target.value)}
                   />
                   <button
-                    type="button"
+                    type="submit"
                     aria-label="Start matching"
                     className="relative flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-[#706CFF] via-[#5E82FF] to-[#46D8FF] text-white shadow-[0_24px_40px_-24px_rgba(94,136,255,0.95)] transition duration-200 hover:scale-105 hover:shadow-[0_30px_50px_-20px_rgba(94,136,255,0.95)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#48D6FF]/80 focus-visible:ring-offset-2 focus-visible:ring-offset-[#05060D]"
                   >
@@ -144,6 +167,20 @@ export default function Home() {
             {/* </div> */}
             
           </section>
+          {chatVisible && (
+            <section className="w-full animate-fade-up" style={{ animationDelay: '380ms' }}>
+              <div className="chatbot-full mx-auto max-w-4xl rounded-[28px] border border-white/12 bg-white/[0.04] px-4 py-6 backdrop-blur-2xl shadow-[0_25px_80px_-52px_rgba(8,16,36,0.95)] sm:px-8 sm:py-10">
+                <Chatbot
+                  config={config}
+                  messageParser={MessageParser}
+                  actionProvider={ActionProvider}
+                  headerText="Synergy AI"
+                  messageHistory={chatMessages}
+                  saveMessages={(messages) => setChatMessages(messages)}
+                />
+              </div>
+            </section>
+          )}
         </div>
       </main>
     </div>
