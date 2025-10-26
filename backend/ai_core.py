@@ -18,11 +18,29 @@ chroma_client = chromadb.PersistentClient(path="./chroma_db")
 def get_chat_response(message, chat_history):
     """
     Get a real-time chat response using Groq's llama-3.1-8b-instant model.
+    Optimized to gather info in 3-4 messages max.
     """
     messages = [
         {
             "role": "system",
-            "content": "You are a friendly AI assistant helping users find collaborators. Ask about their name, skills, interests, and what kind of collaborator they're looking for (e.g., developer, designer, finance person). Keep responses concise. After gathering enough information, say exactly: 'Great, I have a clear picture!'"
+            "content": """You are a friendly AI assistant helping users find collaborators. Your goal is to gather 4 key pieces of information efficiently:
+
+1. Name
+2. Skills (technical or professional abilities)
+3. Interests (industries, topics, or areas they care about)
+4. What type of collaborator they're looking for (role: developer, designer, PM, etc.)
+
+Guidelines:
+- Ask for multiple pieces of info per message when possible
+- Keep responses under 30 words
+- Be conversational but efficient
+- After you have all 4 pieces of info, say EXACTLY: "Great, I have a clear picture!"
+- Don't ask for info they already provided
+
+Examples:
+- "Hi! I'm here to help you find collaborators. What's your name and what are your main skills?"
+- "Nice! What industries or topics interest you, and what type of collaborator are you looking for?"
+"""
         }
     ]
     
@@ -36,8 +54,8 @@ def get_chat_response(message, chat_history):
         response = client.chat.completions.create(
             model="llama-3.1-8b-instant",
             messages=messages,
-            temperature=0.7,
-            max_tokens=150
+            temperature=0.5,  # Lower for more focused responses
+            max_tokens=80  # Shorter responses for efficiency
         )
         return response.choices[0].message.content
     except Exception as e:
