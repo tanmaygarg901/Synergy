@@ -25,9 +25,12 @@ def chat():
     Real-time chat endpoint using Groq llama3-8b.
     """
     try:
-        data = request.json
+        data = request.get_json(silent=True) or {}
         message = data.get('message', '')
         session_id = data.get('session_id', 'default')
+
+        if not message or not message.strip():
+            return jsonify({"error": "Message must not be empty"}), 400
         
         # Get or create chat history for this session
         if session_id not in chat_sessions:
@@ -59,9 +62,12 @@ def find_collaborators():
     Uses Groq llama3-70b for extraction and ChromaDB for matching.
     """
     try:
-        data = request.json
+        data = request.get_json(silent=True) or {}
         chat_transcript = data.get('chat_transcript', '')
         session_id = data.get('session_id', 'default')
+
+        if not chat_transcript or not chat_transcript.strip():
+            return jsonify({"error": "Chat transcript must not be empty"}), 400
         
         # Extract structured profile using Groq 70b
         user_profile = ai_core.extract_user_profile(chat_transcript)
