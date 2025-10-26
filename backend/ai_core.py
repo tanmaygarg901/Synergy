@@ -17,7 +17,7 @@ chroma_client = chromadb.PersistentClient(path="./chroma_db")
 
 def get_chat_response(message, chat_history):
     """
-    Get a real-time chat response using Groq's llama3-8b model.
+    Get a real-time chat response using Groq's llama-3.1-8b-instant model.
     """
     messages = [
         {
@@ -34,7 +34,7 @@ def get_chat_response(message, chat_history):
     
     try:
         response = client.chat.completions.create(
-            model="llama3-8b-8192",
+            model="llama-3.1-8b-instant",
             messages=messages,
             temperature=0.7,
             max_tokens=150
@@ -47,7 +47,7 @@ def get_chat_response(message, chat_history):
 
 def extract_user_profile(chat_transcript):
     """
-    Extract structured profile from chat transcript using Groq's llama3-70b model with JSON mode.
+    Extract structured profile from chat transcript using Groq's llama-3.1-70b-versatile model with JSON mode.
     """
     prompt = f"""Based on this conversation, extract the user's profile in JSON format with these exact keys:
 - name: string
@@ -62,7 +62,7 @@ Return ONLY valid JSON, no other text."""
 
     try:
         response = client.chat.completions.create(
-            model="llama3-70b-8192",
+            model="llama-3.1-70b-versatile",
             messages=[
                 {"role": "system", "content": "You are a JSON extraction expert. Return only valid JSON."},
                 {"role": "user", "content": prompt}
