@@ -131,8 +131,8 @@ export default function Home() {
 
         <main className="flex flex-1 flex-col">
           <section className="mt-24 flex flex-col items-center text-center">
-            <h1 className="max-w-3xl text-5xl font-extrabold tracking-tight text-[#2f2a28] sm:text-6xl">
-              Find Your Perfect Collaborator 🟧
+            <h1 className="max-w-3xl text-5xl font-extrabold leading-tight tracking-tight text-[#2f2a28] sm:text-6xl">
+              Need a team? We got you covered. 🟧
             </h1>
             <p className="mt-6 max-w-2xl text-lg text-[#4f4a45]">
               A modern, AI-powered workspace that connects visionary builders with the right partners.
@@ -143,27 +143,10 @@ export default function Home() {
                 type="button"
                 className="rounded-full bg-[#ff7a1a] px-14 py-6 text-lg font-semibold uppercase tracking-wide text-white shadow-[0_35px_60px_-25px_rgba(255,122,26,0.6)] transition-transform duration-300 hover:-translate-y-1 hover:shadow-[0_45px_80px_-35px_rgba(255,122,26,0.65)]"
               >
-                Launch Synergy
+                Try Synergy
               </button>
             </div>
-            <div className="mt-6 flex flex-col items-center gap-3 text-sm text-[#6b7280]">
-              <label className="inline-flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  readOnly
-                  className="h-5 w-5 rounded-sm border border-[#d6d3ce] bg-transparent accent-[#ff7a1a]"
-                />
-                <span className="text-base font-medium">Curated collaborator matches</span>
-              </label>
-              <label className="inline-flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  readOnly
-                  className="h-5 w-5 rounded-sm border border-[#d6d3ce] bg-transparent accent-[#ff7a1a]"
-                />
-                <span className="text-base font-medium">Personalized AI guidance</span>
-              </label>
-            </div>
+
           </section>
 
           <section className="mt-24 flex-1 pb-16">
