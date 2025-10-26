@@ -4,48 +4,49 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
-    --radius: 0.5rem;
+    --background: 230 58% 6%;
+    --foreground: 214 100% 97%;
+    --card: 232 46% 14%;
+    --card-foreground: 214 100% 97%;
+    --popover: 232 46% 14%;
+    --popover-foreground: 214 100% 97%;
+    --primary: 259 97% 72%;
+    --primary-foreground: 222 47% 11%;
+    --secondary: 215 28% 22%;
+    --secondary-foreground: 214 100% 97%;
+    --muted: 220 26% 20%;
+    --muted-foreground: 215 28% 70%;
+    --accent: 193 95% 68%;
+    --accent-foreground: 222 47% 11%;
+    --destructive: 0 72% 52%;
+    --destructive-foreground: 214 100% 97%;
+    --border: 224 32% 22%;
+    --input: 224 32% 22%;
+    --ring: 259 97% 72%;
+    --radius: 1.25rem;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
+    --background: 228 60% 4%;
+    --foreground: 214 100% 97%;
+    --card: 232 46% 14%;
+    --card-foreground: 214 100% 97%;
+    --popover: 232 46% 14%;
+    --popover-foreground: 214 100% 97%;
+    --primary: 259 97% 72%;
+    --primary-foreground: 222 47% 11%;
+    --secondary: 215 28% 22%;
+    --secondary-foreground: 214 100% 97%;
+    --muted: 220 26% 20%;
+    --muted-foreground: 215 28% 70%;
+    --accent: 193 95% 68%;
+    --accent-foreground: 222 47% 11%;
+    --destructive: 0 72% 52%;
+    --destructive-foreground: 214 100% 97%;
+    --border: 224 32% 22%;
+    --input: 224 32% 22%;
+    --ring: 259 97% 72%;
+    --radius: 1.25rem;
   }
 }
 
@@ -54,71 +55,97 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-family: var(
+      --font-body,
+      "Plus Jakarta Sans",
+      system-ui,
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      sans-serif
+    );
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(
+      --font-heading,
+      "Space Grotesk",
+      "Plus Jakarta Sans",
+      sans-serif
+    );
   }
 }
 
-/* Custom chatbot styles */
-.react-chatbot-kit-chat-container {
-  width: 100%;
-  max-width: 800px;
-  margin: 0 auto;
+@keyframes synergy-orbit {
+  0% {
+    transform: translate3d(-10%, -6%, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(6%, 8%, 0) scale(1.05);
+  }
+  100% {
+    transform: translate3d(-12%, 12%, 0) scale(0.98);
+  }
 }
 
-.react-chatbot-kit-chat-inner-container {
-  height: 500px;
-  border-radius: 0.5rem;
+@keyframes synergy-fade-up {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 32px, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
 }
 
-.react-chatbot-kit-chat-header {
-  background: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
-  border-radius: 0.5rem 0.5rem 0 0;
-  padding: 1rem;
-  font-weight: 600;
-}
+@layer utilities {
+  .font-heading {
+    font-family: var(
+      --font-heading,
+      "Space Grotesk",
+      "Plus Jakarta Sans",
+      sans-serif
+    );
+  }
 
-.react-chatbot-kit-chat-input-container {
-  border-top: 1px solid hsl(var(--border));
-}
+  .bg-synergy-grid {
+    background-image: linear-gradient(
+        rgba(255, 255, 255, 0.05) 1px,
+        transparent 1px
+      ),
+      linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.05) 1px,
+        transparent 1px
+      );
+    background-size: 80px 80px;
+  }
 
-.react-chatbot-kit-chat-message-container {
-  padding: 1rem;
-  overflow-y: auto;
-}
+  .mask-soft {
+    mask-image: radial-gradient(
+      circle at center,
+      rgba(0, 0, 0, 0.9),
+      transparent 65%
+    );
+    -webkit-mask-image: radial-gradient(
+      circle at center,
+      rgba(0, 0, 0, 0.9),
+      transparent 65%
+    );
+  }
 
-.react-chatbot-kit-chat-bot-message {
-  background: hsl(var(--muted));
-  padding: 0.75rem 1rem;
-  border-radius: 0.5rem;
-  margin-bottom: 1rem;
-}
+  .animate-orbit-slow {
+    animation: synergy-orbit 18s ease-in-out infinite alternate;
+  }
 
-.react-chatbot-kit-user-chat-message {
-  background: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
-  padding: 0.75rem 1rem;
-  border-radius: 0.5rem;
-  margin-bottom: 1rem;
-  text-align: right;
-}
-
-.react-chatbot-kit-chat-input {
-  width: 100%;
-  padding: 0.75rem 1rem;
-  border: none;
-  outline: none;
-}
-
-.react-chatbot-kit-chat-btn-send {
-  background: hsl(var(--primary));
-  color: hsl(var(--primary-foreground));
-  padding: 0.75rem 1.5rem;
-  border: none;
-  cursor: pointer;
-  font-weight: 500;
-}
-
-.react-chatbot-kit-chat-btn-send:hover {
-  opacity: 0.9;
+  .animate-fade-up {
+    animation: synergy-fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
 }

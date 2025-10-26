@@ -1,8 +1,17 @@
-import { Inter } from "next/font/google";
 import "./globals.css";
-import "react-chatbot-kit/build/main.css";
+import { Plus_Jakarta_Sans, Space_Grotesk } from "next/font/google";
 
-const inter = Inter({ subsets: ["latin"] });
+const bodyFont = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-body",
+});
+
+const headingFont = Space_Grotesk({
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+  variable: "--font-heading",
+});
 
 export const metadata = {
   title: "Synergy - AI Collaborator Finder",
@@ -12,7 +21,9 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className={inter.className}>{children}</body>
+      <body className={`${bodyFont.variable} ${headingFont.variable}`}>
+        {children}
+      </body>
     </html>
   );
 }
