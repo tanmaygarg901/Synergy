@@ -123,9 +123,9 @@ export default function Home() {
         <header className="flex items-center justify-between text-sm font-medium text-[#2f2a28]">
           <span className="text-base font-semibold uppercase tracking-[0.2em]">Synergy</span>
           <nav className="flex gap-8 text-sm text-[#2f2a28]/85">
-            <a href="#" className="transition-opacity hover:opacity-70">Features</a>
-            <a href="#" className="transition-opacity hover:opacity-70">How it Works</a>
-            <a href="#" className="transition-opacity hover:opacity-70">Community</a>
+            <a href="#" className="transition-opacity font-semibold hover:opacity-70">Features</a>
+            <a href="#" className="transition-opacity font-semibold hover:opacity-70">How it Works</a>
+            <a href="#" className="transition-opacity font-semibold hover:opacity-70">Community</a>
           </nav>
         </header>
 
