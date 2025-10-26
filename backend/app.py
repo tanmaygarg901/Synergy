@@ -4,6 +4,8 @@ from dotenv import load_dotenv
 import logging
 import time
 import traceback
+import os
+import httpx
 import ai_core
 
 # Load environment variables
@@ -45,6 +47,38 @@ def log_response_info(response):
 
 # Store chat history per session (in production, use proper session management)
 chat_sessions = {}
+processed_slack_messages = set()  # (channel_id, message_ts)
+recent_text_cache = {}  # {(channel_id, normalized_text): last_ts}
+
+
+def _post_slack_thread_message(channel_id: str, thread_ts: str, text: str) -> bool:
+    """Post a message to a Slack thread if SLACK_BOT_TOKEN is configured.
+    Returns True on success, False otherwise. Never raises to avoid impacting MVP.
+    """
+    token = os.getenv('SLACK_BOT_TOKEN', '').strip()
+    if not token:
+        return False
+    try:
+        resp = httpx.post(
+            'https://slack.com/api/chat.postMessage',
+            headers={
+                'Authorization': f'Bearer {token}',
+                'Content-Type': 'application/json'
+            },
+            json={
+                'channel': channel_id,
+                'thread_ts': thread_ts,
+                'text': text
+            },
+            timeout=8.0
+        )
+        ok = resp.json().get('ok', False)
+        if not ok:
+            logging.warning(f"Slack postMessage failed: {resp.text}")
+        return bool(ok)
+    except Exception as e:
+        logging.warning(f"Slack postMessage error: {e}")
+        return False
 
 
 # Validation helpers
@@ -319,6 +353,216 @@ def search_skills():
         return jsonify({"error": "Failed to search by skills"}), 500
 
 
+@app.route('/slack/ingest', methods=['POST'])
+def slack_ingest():
+    """Ingest Slack channel messages via Composio. Minimal and isolated.
+
+    Expects JSON body:
+      {
+        "text": "intro message",
+        "channel_id": "C123",
+        "message_ts": "1730000000.000100",
+        "user_id": "U123",
+        "thread_ts": "1730000000.000100"  # optional
+      }
+
+    Auth: Send header Authorization: Bearer <SLACK_INGEST_TOKEN>
+    """
+    try:
+        # Simple bearer token verification (keeps MVP untouched)
+        authz = request.headers.get('Authorization', '')
+        token = authz.split('Bearer ' ,1)[1].strip() if 'Bearer ' in authz else ''
+        expected = os.getenv('SLACK_INGEST_TOKEN', '')
+        if not expected or token != expected:
+            return jsonify({"error": "Unauthorized"}), 401
+
+        data = request.get_json(silent=True) or {}
+        text = (data.get('text') or '').strip()
+        channel_id = (data.get('channel_id') or '').strip()
+        message_ts = (data.get('message_ts') or '').strip()
+        user_id = (data.get('user_id') or '').strip()
+
+        # Validate minimal fields
+        if not text or not channel_id or not message_ts:
+            return jsonify({"error": "Missing required fields: text, channel_id, message_ts"}), 400
+
+        # Optional: channel allowlist
+        allowed = os.getenv('SLACK_CHANNEL_ALLOWLIST', '')  # comma-separated channel IDs
+        if allowed:
+            allow = {c.strip() for c in allowed.split(',') if c.strip()}
+            if channel_id not in allow:
+                return jsonify({"ok": True, "skipped": True, "reason": "channel_not_allowed"})
+
+        # Idempotency: skip if we've already processed
+        key = (channel_id, message_ts)
+        if key in processed_slack_messages:
+            return jsonify({"ok": True, "deduped": True})
+
+        logger.info("🤖 Ingesting Slack intro from %s in %s", user_id or "unknown", channel_id)
+
+        # Build transcript and extract profile
+        transcript = f"User: {text}"
+        profile = ai_core.extract_user_profile(transcript) or {}
+
+        # Save profile and compute matches
+        saved_user_id = ai_core.save_user_profile(profile)
+        matches = ai_core.find_collaborators(profile) or []
+
+        # Keep only top 3 for Slack summary
+        top_matches = []
+        for m in matches[:3]:
+            top_matches.append({
+                "name": m.get("name"),
+                "role": m.get("role"),
+                "score": m.get("score"),
+                "availability": m.get("availability")
+            })
+
+        # Mark processed
+        processed_slack_messages.add(key)
+
+        # Short summary for Composio to post in thread
+        summary = {
+            "ok": True,
+            "saved_user_id": saved_user_id,
+            "profile": {
+                "name": profile.get("name"),
+                "role": profile.get("role"),
+                "skills": profile.get("skills", []),
+                "interests": profile.get("interests", []),
+                "looking_for": profile.get("looking_for")
+            },
+            "top_matches": top_matches
+        }
+
+        return jsonify(summary)
+    except Exception as e:
+        logger.error("❌ ERROR in /slack/ingest: %s", e)
+        logger.error(traceback.format_exc())
+        return jsonify({"error": "Failed to ingest Slack message"}), 500
+
+
+@app.route('/slack/events', methods=['POST'])
+def slack_events():
+    """Slack Events API adapter.
+
+    - Responds to URL verification by echoing the challenge
+    - For message events, reuses the same profile extraction + matching pipeline
+    """
+    try:
+        data = request.get_json(silent=True) or {}
+
+        # 1) URL verification handshake
+        if data.get('type') == 'url_verification':
+            challenge = data.get('challenge')
+            return jsonify({"challenge": challenge})
+
+        # 2) Event callbacks
+        if data.get('type') == 'event_callback':
+            event = data.get('event', {})
+            # Only handle plain channel messages
+            if event.get('type') == 'message' and not event.get('subtype'):
+                text = (event.get('text') or '').strip()
+                channel_id = (event.get('channel') or '').strip()
+                message_ts = (event.get('ts') or '').strip()
+                user_id = (event.get('user') or '').strip()
+
+                if not text or not channel_id or not message_ts:
+                    return jsonify({"ok": True, "skipped": True, "reason": "missing_fields"})
+
+                # Ignore messages from bots (avoid reply loops)
+                if event.get('bot_id'):
+                    return jsonify({"ok": True, "skipped": True, "reason": "bot_message"})
+                bot_user_id = os.getenv('SLACK_BOT_USER_ID', '').strip()
+                if bot_user_id and user_id == bot_user_id:
+                    return jsonify({"ok": True, "skipped": True, "reason": "self_message"})
+
+                # Optional: channel allowlist
+                allowed = os.getenv('SLACK_CHANNEL_ALLOWLIST', '')
+                if allowed:
+                    allow = {c.strip() for c in allowed.split(',') if c.strip()}
+                    if channel_id not in allow:
+                        return jsonify({"ok": True, "skipped": True, "reason": "channel_not_allowed"})
+
+                # Idempotency
+                key = (channel_id, message_ts)
+                if key in processed_slack_messages:
+                    return jsonify({"ok": True, "deduped": True})
+
+                # Soft dedupe: ignore identical text from same channel within 2 minutes
+                try:
+                    import time as _t
+                    norm = ' '.join(text.lower().split())
+                    tkey = (channel_id, norm)
+                    now = _t.time()
+                    last = recent_text_cache.get(tkey, 0)
+                    if now - last < 120:  # 2 minutes
+                        return jsonify({"ok": True, "deduped_text": True})
+                    recent_text_cache[tkey] = now
+                except Exception:
+                    pass
+
+                logger.info("📨 Slack event message from %s in %s", user_id or "unknown", channel_id)
+
+                # Reuse pipeline
+                transcript = f"User: {text}"
+                profile = ai_core.extract_user_profile(transcript) or {}
+                saved_user_id = ai_core.save_user_profile(profile)
+                matches = ai_core.find_collaborators(profile) or []
+
+                top_matches = []
+                for m in matches[:3]:
+                    top_matches.append({
+                        "name": m.get("name"),
+                        "role": m.get("role"),
+                        "score": m.get("score"),
+                        "availability": m.get("availability")
+                    })
+
+                processed_slack_messages.add(key)
+
+                # Optionally reply in Slack thread (guarded by SLACK_BOT_TOKEN)
+                summary_lines = [
+                    f"✅ Profile added: *{(profile.get('role') or 'Unknown')}*",
+                    f"• Skills: {', '.join(profile.get('skills') or []) or '—'}",
+                    f"• Interests: {', '.join(profile.get('interests') or []) or '—'}",
+                    "",
+                ]
+                if top_matches:
+                    summary_lines.append("Top matches:")
+                    for i, tm in enumerate(top_matches, start=1):
+                        name = tm.get('name') or tm.get('role') or 'Candidate'
+                        role = tm.get('role') or '—'
+                        score = tm.get('score')
+                        score_str = f" ({int(round(score))}%)" if isinstance(score, (int, float)) else ""
+                        summary_lines.append(f"{i}) {name} — {role}{score_str}")
+                else:
+                    summary_lines.append("No strong matches yet. Try adding 1–2 more skills or interests.")
+                summary_text = "\n".join(summary_lines)
+
+                _post_slack_thread_message(channel_id, message_ts, summary_text)
+
+                return jsonify({
+                    "ok": True,
+                    "saved_user_id": saved_user_id,
+                    "profile": {
+                        "name": profile.get("name"),
+                        "role": profile.get("role"),
+                        "skills": profile.get("skills", []),
+                        "interests": profile.get("interests", []),
+                        "looking_for": profile.get("looking_for")
+                    },
+                    "top_matches": top_matches
+                })
+
+        # For other events, just ack
+        return jsonify({"ok": True})
+    except Exception as e:
+        logger.error("❌ ERROR in /slack/events: %s", e)
+        logger.error(traceback.format_exc())
+        return jsonify({"error": "Failed to handle Slack event"}), 500
+
+
 @app.route('/stats', methods=['GET'])
 def get_stats():
     """
@@ -408,6 +652,8 @@ if __name__ == '__main__':
     logger.info("      GET  /health")
     logger.info("      POST /chat")
     logger.info("      POST /find-collaborators")
+    logger.info("      POST /slack/ingest")
+    logger.info("      POST /slack/events")
     logger.info("      GET  /collaborators")
     logger.info("      GET  /collaborators/<id>")
     logger.info("      POST /search/skills")
